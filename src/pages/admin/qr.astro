@@ -1,0 +1,14 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AdminLayout from "../../components/admin/AdminLayout";
+import QRGenerator from "../../components/admin/QRGenerator";
+---
+
+<Layout>
+    <AdminLayout client:only="react">
+        <div class="flex justify-between items-center mb-6">
+            <a href="/admin/dashboard" class="btn btn-ghost btn-sm">← Volver</a>
+        </div>
+        <QRGenerator client:load />
+    </AdminLayout>
+</Layout>

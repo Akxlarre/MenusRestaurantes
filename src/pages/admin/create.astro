@@ -1,0 +1,16 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AdminLayout from "../../components/admin/AdminLayout";
+import ProductForm from "../../components/admin/ProductForm";
+---
+
+<Layout>
+    <AdminLayout client:only="react">
+        <div className="flex justify-between items-center mb-6">
+            <a href="/admin/dashboard" className="btn btn-ghost btn-sm"
+                >← Volver</a
+            >
+        </div>
+        <ProductForm client:load />
+    </AdminLayout>
+</Layout>

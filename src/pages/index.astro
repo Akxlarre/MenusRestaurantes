@@ -1,0 +1,71 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PublicNavbar from "../components/public/PublicNavbar.astro";
+import Hero from "../components/public/Hero.astro";
+import MenuCard from "../components/public/MenuCard.astro";
+import { supabase } from "../lib/supabase";
+
+// Fetch Data (SSR)
+const { data: menuItems, error } = await supabase
+	.from("menu_items")
+	.select("*")
+	.order("price", { ascending: true }); // Sort by price usually puts appetizers first, but category sort is better
+
+if (error) {
+	console.error("Error fetching menu:", error);
+}
+
+// Group by Category
+const categories = ["Entradas", "Fondos", "Bebidas", "Postres"];
+const groupedItems = categories.reduce(
+	(acc, cat) => {
+		acc[cat] = menuItems?.filter((item) => item.category === cat) || [];
+		return acc;
+	},
+	{} as Record<string, typeof menuItems>,
+);
+
+// Filter empty categories
+const activeCategories = categories.filter(
+	(cat) => groupedItems[cat] && groupedItems[cat].length > 0,
+);
+---
+
+<Layout>
+	<PublicNavbar />
+	<Hero />
+
+	<main class="container mx-auto px-4 py-8 pb-20">
+		{
+			activeCategories.map((cat) => (
+				<section id={cat} class="mb-12 scroll-mt-20">
+					<h2 class="text-3xl font-bold mb-6 border-l-4 border-primary pl-4 font-serif">
+						{cat}
+					</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+						{groupedItems[cat].map((item: any) => (
+							<MenuCard {...item} />
+						))}
+					</div>
+				</section>
+			))
+		}
+
+		{
+			(!menuItems || menuItems.length === 0) && (
+				<div class="text-center py-20 opacity-50">
+					<p>El menú se está cargando o está vacío.</p>
+				</div>
+			)
+		}
+	</main>
+
+	<footer class="footer footer-center p-4 bg-base-300 text-base-content">
+		<aside>
+			<p>
+				Tecnología por <a href="#" class="font-bold text-primary"
+					>AION SpA</a>
+			</p>
+		</aside>
+	</footer>
+</Layout>

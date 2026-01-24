@@ -1,0 +1,31 @@
+---
+const categories = ["Entradas", "Fondos", "Bebidas", "Postres"];
+---
+
+<div
+    class="sticky top-0 z-50 bg-base-100/90 backdrop-blur-md border-b border-base-200"
+>
+    <div class="navbar min-h-12 overflow-x-auto">
+        <div class="flex-none">
+            <ul class="menu menu-horizontal px-1 gap-2">
+                {
+                    categories.map((cat) => (
+                        <li>
+                            <a
+                                href={`#${cat}`}
+                                class="font-medium text-sm whitespace-nowrap scroll-smooth"
+                            >
+                                {cat}
+                            </a>
+                        </li>
+                    ))
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Simple active state for scroll (optional enhancement)
+    // GSAP ScrollTrigger could go here later
+</script>

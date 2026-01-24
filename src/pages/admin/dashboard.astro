@@ -1,0 +1,11 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AdminLayout from "../../components/admin/AdminLayout";
+import DashboardHome from "../../components/admin/DashboardHome";
+---
+
+<Layout>
+    <AdminLayout client:only="react">
+        <DashboardHome client:load />
+    </AdminLayout>
+</Layout>
