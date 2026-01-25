@@ -16,6 +16,7 @@ const { id, name_es, name_zh, price, is_available } = Astro.props;
     class={`menu-item-card group ${!is_available ? "opacity-50" : ""}`}
     data-product-id={id}
     data-available={is_available.toString()}
+    data-astro-prefetch="hover"
 >
     <div class="flex items-center justify-between gap-6 relative">
         <!-- Indicador visual izquierdo -->

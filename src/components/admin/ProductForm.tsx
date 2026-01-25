@@ -2,12 +2,22 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '@nanostores/react';
 import { adminLang, adminTranslations } from '../../stores/i18nStore';
+import { compressImage, formatFileSize } from '../../lib/imageUtils';
 
 interface Category {
     id: string;
     name_es: string;
     name_zh: string;
     slug: string;
+}
+
+interface ImageState {
+    file: File | null;
+    preview: string | null;
+    originalSize: number;
+    compressedBlob: Blob | null;
+    compressedSize: number;
+    isCompressing: boolean;
 }
 
 export default function ProductForm() {
@@ -22,8 +32,16 @@ export default function ProductForm() {
     const [price, setPrice] = useState('');
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
-    const [file, setFile] = useState<File | null>(null);
-    const [fileName, setFileName] = useState('');
+    
+    // Estado mejorado para imagen con preview y compresión
+    const [imageState, setImageState] = useState<ImageState>({
+        file: null,
+        preview: null,
+        originalSize: 0,
+        compressedBlob: null,
+        compressedSize: 0,
+        isCompressing: false,
+    });
 
     useEffect(() => {
         fetchCategories();
@@ -42,12 +60,58 @@ export default function ProductForm() {
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
-            setFileName(e.target.files[0].name);
+            const file = e.target.files[0];
+            
+            // Crear preview inmediato
+            const preview = URL.createObjectURL(file);
+            
+            setImageState({
+                file,
+                preview,
+                originalSize: file.size,
+                compressedBlob: null,
+                compressedSize: 0,
+                isCompressing: true,
+            });
+
+            try {
+                // Comprimir a WebP
+                const { blob } = await compressImage(file, {
+                    maxWidth: 1200,
+                    maxHeight: 1200,
+                    quality: 0.85,
+                    format: 'webp',
+                });
+
+                setImageState(prev => ({
+                    ...prev,
+                    compressedBlob: blob,
+                    compressedSize: blob.size,
+                    isCompressing: false,
+                }));
+            } catch (error) {
+                console.error('Error comprimiendo imagen:', error);
+                // Si falla la compresión, usar archivo original
+                setImageState(prev => ({
+                    ...prev,
+                    compressedBlob: file,
+                    compressedSize: file.size,
+                    isCompressing: false,
+                }));
+            }
         }
     };
+
+    // Limpiar preview al desmontar
+    useEffect(() => {
+        return () => {
+            if (imageState.preview) {
+                URL.revokeObjectURL(imageState.preview);
+            }
+        };
+    }, [imageState.preview]);
 
     const toggleCategory = (categoryId: string) => {
         if (selectedCategories.includes(categoryId)) {
@@ -69,15 +133,17 @@ export default function ProductForm() {
 
         let imageUrl = null;
 
-        // 1. Upload Image
-        if (file) {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random()}.${fileExt}`;
-            const filePath = `${fileName}`;
+        // 1. Upload Image (comprimida a WebP)
+        if (imageState.compressedBlob) {
+            // Usar siempre extensión .webp para imágenes comprimidas
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
 
             const { error: uploadError } = await supabase.storage
                 .from('menu-images')
-                .upload(filePath, file);
+                .upload(fileName, imageState.compressedBlob, {
+                    contentType: 'image/webp',
+                    cacheControl: '31536000', // Cache 1 año
+                });
 
             if (uploadError) {
                 alert('Error uploading image: ' + uploadError.message);
@@ -88,7 +154,7 @@ export default function ProductForm() {
             // Get Public URL
             const { data } = supabase.storage
                 .from('menu-images')
-                .getPublicUrl(filePath);
+                .getPublicUrl(fileName);
 
             imageUrl = data.publicUrl;
         }
@@ -281,29 +347,73 @@ export default function ProductForm() {
                             {t.image}
                             <span className="text-[#5A5A5C]/50 font-normal text-xs">({t.optional})</span>
                         </h3>
-                        <label className="flex items-center justify-center gap-3 px-4 py-6 bg-[#F7F7F2] border-2 border-dashed border-[#E8C4C4]/50 rounded-xl cursor-pointer hover:border-[#B84A4A]/50 transition-colors">
-                            <input 
-                                type="file" 
-                                className="sr-only" 
-                                accept="image/*" 
-                                onChange={handleFileChange} 
-                            />
-                            {fileName ? (
-                                <>
-                                    <svg className="w-6 h-6 text-[#4A8A2C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    <span className="text-[#1C1C1E] font-medium">{fileName}</span>
-                                </>
-                            ) : (
-                                <>
-                                    <svg className="w-6 h-6 text-[#5A5A5C]/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    <span className="text-[#5A5A5C]">{t.clickToUpload}</span>
-                                </>
-                            )}
-                        </label>
+                        
+                        {/* Preview de imagen */}
+                        {imageState.preview && (
+                            <div className="mb-3 relative">
+                                <div className="relative w-full max-w-xs mx-auto">
+                                    <img 
+                                        src={imageState.preview} 
+                                        alt="Preview" 
+                                        className="w-full aspect-square object-cover rounded-xl border border-[#E8C4C4]/30"
+                                    />
+                                    {/* Botón eliminar */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setImageState({
+                                            file: null,
+                                            preview: null,
+                                            originalSize: 0,
+                                            compressedBlob: null,
+                                            compressedSize: 0,
+                                            isCompressing: false,
+                                        })}
+                                        className="absolute -top-2 -right-2 w-6 h-6 bg-[#B84A4A] text-white rounded-full flex items-center justify-center hover:bg-[#8B3A3A] transition-colors shadow-md"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                {/* Info de compresión */}
+                                <div className="mt-2 text-center">
+                                    {imageState.isCompressing ? (
+                                        <div className="flex items-center justify-center gap-2 text-[#5A5A5C] text-xs">
+                                            <span className="loading loading-spinner loading-xs"></span>
+                                            <span>{lang === 'es' ? 'Optimizando imagen...' : '优化图片中...'}</span>
+                                        </div>
+                                    ) : imageState.compressedSize > 0 && (
+                                        <div className="flex items-center justify-center gap-2 text-xs">
+                                            <span className="text-[#5A5A5C] line-through">{formatFileSize(imageState.originalSize)}</span>
+                                            <svg className="w-3 h-3 text-[#4A8A2C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                            </svg>
+                                            <span className="text-[#4A8A2C] font-medium">{formatFileSize(imageState.compressedSize)}</span>
+                                            <span className="px-1.5 py-0.5 bg-[#4A8A2C]/10 text-[#4A8A2C] rounded text-xs font-medium">
+                                                WebP -{Math.round((1 - imageState.compressedSize / imageState.originalSize) * 100)}%
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Input de archivo */}
+                        {!imageState.preview && (
+                            <label className="flex items-center justify-center gap-3 px-4 py-6 bg-[#F7F7F2] border-2 border-dashed border-[#E8C4C4]/50 rounded-xl cursor-pointer hover:border-[#B84A4A]/50 transition-colors">
+                                <input 
+                                    type="file" 
+                                    className="sr-only" 
+                                    accept="image/*" 
+                                    onChange={handleFileChange} 
+                                />
+                                <svg className="w-6 h-6 text-[#5A5A5C]/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span className="text-[#5A5A5C]">{t.clickToUpload}</span>
+                            </label>
+                        )}
                     </div>
 
                     {/* Submit */}

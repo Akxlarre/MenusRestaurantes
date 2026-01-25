@@ -59,12 +59,17 @@ const fallbackImage = categoryImages[firstCategory] || categoryImages.Fondos;
                 <!-- Imagen del producto -->
                 <div class="relative">
                     <figure
-                        class="aspect-square rounded-2xl overflow-hidden shadow-card"
+                        class="aspect-square rounded-2xl overflow-hidden shadow-card bg-[#F7F7F2]"
                     >
                         <img
                             src={product.image_url || fallbackImage}
                             alt={product.name_es}
-                            class="w-full h-full object-cover"
+                            class="w-full h-full object-cover transition-opacity duration-300"
+                            loading="eager"
+                            decoding="async"
+                            fetchpriority="high"
+                            onload="this.style.opacity='1'"
+                            style="opacity: 0;"
                         />
                     </figure>
 

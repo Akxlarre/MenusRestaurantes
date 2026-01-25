@@ -14,5 +14,11 @@ export default defineConfig({
     plugins: [tailwindcss()]
   },
 
-  integrations: [react()]
+  integrations: [react()],
+
+  // Prefetch para navegación más rápida
+  prefetch: {
+    prefetchAll: false,
+    defaultStrategy: 'hover'
+  }
 });

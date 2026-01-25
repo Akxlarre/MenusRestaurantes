@@ -20,13 +20,30 @@
         const petalCount = 24; // Número de pétalos
         const petals: HTMLElement[] = [];
 
+        // Formas de pétalos de sakura realistas (con muesca característica)
+        const petalShapes = [
+            // Pétalo clásico con muesca pequeña
+            `<path d="M10 1 C4 1 1 5 1 10 C1 15 4 19 9 21.5 L10 19.5 L11 21.5 C16 19 19 15 19 10 C19 5 16 1 10 1Z" fill="currentColor"/>`,
+            // Pétalo más redondeado con muesca
+            `<path d="M10 0 C3 0 0 6 0 11 C0 16 3 20 9.5 22 L10 20 L10.5 22 C17 20 20 16 20 11 C20 6 17 0 10 0Z" fill="currentColor"/>`,
+            // Pétalo asimétrico natural
+            `<path d="M9 1 C3 2 0 6 1 11 C2 16 5 20 9.5 22 L10 20 L11 22 C15 19 19 15 18 10 C17 5 14 1 9 1Z" fill="currentColor"/>`,
+            // Pétalo delgado con muesca profunda
+            `<path d="M10 0 C5 0 2 4 2 9 C2 14 5 18 9 21 L10 18 L11 21 C15 18 18 14 18 9 C18 4 15 0 10 0Z" fill="currentColor"/>`,
+        ];
+
         // Crear pétalos
         for (let i = 0; i < petalCount; i++) {
             const petal = document.createElement('div');
             petal.className = 'sakura-petal';
+            
+            // Seleccionar forma aleatoria
+            const shapeIndex = Math.floor(Math.random() * petalShapes.length);
+            const rotation = Math.random() * 360;
+            
             petal.innerHTML = `
-                <svg viewBox="0 0 20 20" fill="none" class="w-full h-full">
-                    <ellipse cx="10" cy="10" rx="8" ry="5" fill="currentColor" transform="rotate(${Math.random() * 360} 10 10)"/>
+                <svg viewBox="0 0 20 22" fill="none" class="w-full h-full" style="transform: rotate(${rotation}deg)">
+                    ${petalShapes[shapeIndex]}
                 </svg>
             `;
             
@@ -130,12 +147,17 @@
 
 <style>
     .sakura-petal {
-        filter: drop-shadow(0 1px 2px rgba(255, 183, 197, 0.3));
+        filter: drop-shadow(0 2px 3px rgba(255, 150, 170, 0.25));
         will-change: transform;
     }
 
     .sakura-petal svg {
-        filter: blur(0.3px);
+        filter: blur(0.2px);
+        opacity: 0.95;
+    }
+    
+    .sakura-petal svg path {
+        filter: drop-shadow(0 0 1px rgba(255, 200, 210, 0.5));
     }
 
     /* Reducir animaciones en preferencia de movimiento reducido */
