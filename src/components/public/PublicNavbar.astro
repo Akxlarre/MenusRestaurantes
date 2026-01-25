@@ -1,31 +1,437 @@
 ---
-const categories = ["Entradas", "Fondos", "Bebidas", "Postres"];
+import { supabase } from "../../lib/supabase";
+
+// Fetch categories dynamically from database
+const { data: categories, error } = await supabase
+	.from("categories")
+	.select("*")
+	.order("display_order", { ascending: true });
+
+if (error) {
+	console.error("Error fetching categories:", error);
+}
+
+// Transform to include both ES and ZH names in display
+const displayCategories =
+	categories?.map((cat) => ({
+		id: cat.slug,
+		name: cat.name_es,
+		nameZh: cat.name_zh,
+	})) || [];
 ---
 
-<div
-    class="sticky top-0 z-50 bg-base-100/90 backdrop-blur-md border-b border-base-200"
->
-    <div class="navbar min-h-12 overflow-x-auto">
-        <div class="flex-none">
-            <ul class="menu menu-horizontal px-1 gap-2">
-                {
-                    categories.map((cat) => (
-                        <li>
-                            <a
-                                href={`#${cat}`}
-                                class="font-medium text-sm whitespace-nowrap scroll-smooth"
-                            >
-                                {cat}
-                            </a>
-                        </li>
-                    ))
-                }
-            </ul>
-        </div>
-    </div>
-</div>
+<nav id="main-navbar" class="fixed top-0 left-0 right-0 z-[2100] navbar-container">
+	<div class="container mx-auto px-6 py-5">
+		<div class="flex items-center justify-between">
+			<!-- LOGO con más presencia -->
+			<div id="navbar-logo-container" class="navbar-element">
+				<a href="/" class="group flex items-center gap-3">
+					<span
+						class="relative font-playfair text-2xl md:text-3xl font-bold text-sumi-ink group-hover:text-matcha transition-all duration-300 tracking-tight"
+					>
+						Mini wok
+					</span>
+					<span
+						class="text-xs md:text-sm text-matcha-oscuro font-noto-serif opacity-70"
+					>
+						餐厅
+					</span>
+				</a>
+			</div>
+
+			<!-- NAVEGACIÓN DESKTOP con mejor contraste -->
+			<div id="navbar-links" class="navbar-element hidden md:flex items-center gap-8 lg:gap-10">
+				{
+					displayCategories.map((cat) => (
+						<a href={`#${cat.id}`} class="nav-link relative group">
+							<div class="flex flex-col items-center gap-0.5">
+								<span class="text-[10px] font-noto-serif text-matcha-oscuro opacity-80 group-hover:opacity-100 transition-opacity">
+									{cat.nameZh}
+								</span>
+								<span class="text-sm font-inter font-semibold text-sumi-ink group-hover:text-matcha transition-colors">
+									{cat.name}
+								</span>
+							</div>
+						</a>
+					))
+				}
+			</div>
+
+			<!-- Mobile Menu Button con mejor diseño -->
+			<div id="navbar-menu-btn" class="navbar-element md:hidden relative z-[1300] w-12 h-12">
+				<button
+					id="mobile-menu-button"
+					class="bg-matcha/10 hover:bg-matcha/20 text-sumi-ink rounded-lg p-2.5 relative w-12 h-12 flex items-center justify-center border border-matcha/30 transition-all"
+					style="perspective: 1000px;"
+					aria-label="Toggle menu"
+					aria-expanded="false"
+				>
+					<div
+						id="menu-icon-wrapper"
+						class="absolute inset-0 flex items-center justify-center transition-all duration-500"
+						style="backface-visibility: hidden;"
+					>
+						<svg
+							class="w-6 h-6"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+							stroke-width="2.5"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M4 6h16M4 12h16M4 18h16"></path>
+						</svg>
+					</div>
+					<div
+						id="close-icon-wrapper"
+						class="absolute inset-0 flex items-center justify-center transition-all duration-500 opacity-0"
+						style="backface-visibility: hidden; transform: rotateY(180deg);"
+					>
+						<svg
+							class="w-6 h-6"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+							stroke-width="2.5"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M6 18L18 6M6 6l12 12"></path>
+						</svg>
+					</div>
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Mobile Menu - PORTAL FULLSCREEN con glassmorphism -->
+	<div
+		id="mobile-menu"
+		class="fixed inset-0 bg-arroz/70 backdrop-blur-2xl z-[1200] opacity-0 invisible md:hidden flex flex-col items-center justify-center gap-10 overscroll-contain"
+	>
+		{
+			displayCategories.map((cat) => (
+				<a
+					href={`#${cat.id}`}
+					class="mobile-nav-link group text-center"
+				>
+					<span class="text-xl text-matcha-text font-noto-serif block mb-2 opacity-70 group-hover:opacity-100 transition-opacity">
+						{cat.nameZh}
+					</span>
+					<span class="text-4xl font-playfair font-bold text-sumi-ink group-hover:text-matcha-dark transition-colors">
+						{cat.name}
+					</span>
+				</a>
+			))
+		}
+	</div>
+</nav>
 
 <script>
-    // Simple active state for scroll (optional enhancement)
-    // GSAP ScrollTrigger could go here later
+	const setupNavbar = () => {
+		const menuButton = document.getElementById("mobile-menu-button");
+		const mobileMenu = document.getElementById("mobile-menu");
+		const menuWrapper = document.getElementById("menu-icon-wrapper");
+		const closeWrapper = document.getElementById("close-icon-wrapper");
+
+		if (menuButton && mobileMenu) {
+			if (menuButton.hasAttribute("data-initialized")) return;
+			menuButton.setAttribute("data-initialized", "true");
+
+			const originalMenuParent = mobileMenu.parentElement;
+			let menuScrollPosition = 0;
+
+			// Calcular ancho del scrollbar
+			const getScrollbarWidth = () => {
+				return window.innerWidth - document.documentElement.clientWidth;
+			};
+
+			const lockMenuScroll = () => {
+				menuScrollPosition = window.scrollY;
+				const scrollbarWidth = getScrollbarWidth();
+				
+				document.body.style.position = "fixed";
+				document.body.style.top = `-${menuScrollPosition}px`;
+				document.body.style.left = "0";
+				document.body.style.right = "0";
+				document.body.style.overflow = "hidden";
+				document.body.style.paddingRight = `${scrollbarWidth}px`;
+			};
+
+			const unlockMenuScroll = (scrollTarget: number | null = null) => {
+				const targetY = scrollTarget !== null ? scrollTarget : menuScrollPosition;
+				
+				document.body.style.position = "";
+				document.body.style.top = "";
+				document.body.style.left = "";
+				document.body.style.right = "";
+				document.body.style.overflow = "";
+				document.body.style.paddingRight = "";
+				
+				// Ir inmediatamente a la posición target (forzar instant)
+				window.scrollTo({
+					top: targetY,
+					left: 0,
+					behavior: 'instant'
+				});
+			};
+
+			const closePortal = (scrollTarget: number | null = null) => {
+				if (menuWrapper && closeWrapper) {
+					menuWrapper.style.transform = "rotateY(0deg)";
+					menuWrapper.style.opacity = "1";
+					closeWrapper.style.transform = "rotateY(180deg)";
+					closeWrapper.style.opacity = "0";
+				}
+
+				mobileMenu.style.opacity = "0";
+				mobileMenu.style.transform = "scale(1.05)";
+				mobileMenu.style.filter = "blur(10px)";
+
+				setTimeout(() => {
+					mobileMenu.style.visibility = "invisible";
+					unlockMenuScroll(scrollTarget);
+					menuButton.setAttribute("aria-expanded", "false");
+
+					if (
+						originalMenuParent &&
+						mobileMenu.parentElement !== originalMenuParent
+					) {
+						originalMenuParent.appendChild(mobileMenu);
+					}
+
+					const navbarButtonWrapper = document.querySelector(
+						".md\\:hidden.relative.z-\\[1300\\]",
+					);
+					if (
+						navbarButtonWrapper &&
+						menuButton.parentElement !== navbarButtonWrapper
+					) {
+						menuButton.style.position = "";
+						menuButton.style.top = "";
+						menuButton.style.right = "";
+						menuButton.style.zIndex = "";
+						navbarButtonWrapper.appendChild(menuButton);
+					}
+
+					mobileMenu.style.transform = "";
+					mobileMenu.style.filter = "";
+				}, 300);
+			};
+
+			const openPortal = () => {
+				// Capturar posición del botón ANTES de modificar el DOM
+				const buttonRect = menuButton.getBoundingClientRect();
+				const buttonTop = buttonRect.top;
+				const buttonRight = window.innerWidth - buttonRect.right;
+
+				if (mobileMenu.parentElement !== document.body) {
+					document.body.appendChild(mobileMenu);
+				}
+
+				mobileMenu.style.visibility = "visible";
+				mobileMenu.style.opacity = "0";
+				mobileMenu.style.transform = "scale(1.05)";
+				mobileMenu.style.filter = "blur(10px)";
+
+				setTimeout(() => {
+					mobileMenu.style.opacity = "1";
+					mobileMenu.style.transform = "scale(1)";
+					mobileMenu.style.filter = "blur(0px)";
+				}, 10);
+
+				lockMenuScroll();
+				menuButton.setAttribute("aria-expanded", "true");
+
+				if (menuButton.parentElement !== document.body) {
+					document.body.appendChild(menuButton);
+
+					menuButton.style.position = "fixed";
+					menuButton.style.top = `${buttonTop}px`;
+					menuButton.style.right = `${buttonRight}px`;
+					menuButton.style.zIndex = "3000";
+				}
+
+				if (menuWrapper && closeWrapper) {
+					menuWrapper.style.transform = "rotateY(-180deg)";
+					menuWrapper.style.opacity = "0";
+					closeWrapper.style.transform = "rotateY(0deg)";
+					closeWrapper.style.opacity = "1";
+				}
+			};
+
+			menuButton.addEventListener("click", () => {
+				const isExpanded =
+					menuButton.getAttribute("aria-expanded") === "true";
+				if (isExpanded) {
+					closePortal(null); // null = restaurar posición anterior
+				} else {
+					openPortal();
+				}
+			});
+
+			// Mobile menu links - cerrar menú y navegar directamente
+			mobileMenu.querySelectorAll("a").forEach((link) => {
+				link.addEventListener("click", (e) => {
+					const href = link.getAttribute("href");
+					if (href && href.startsWith("#")) {
+						e.preventDefault();
+						const targetId = href.substring(1);
+						const targetElement = document.getElementById(targetId);
+						
+						if (targetElement) {
+							// Calcular posición del target (considerando scroll-margin-top)
+							const scrollMargin = parseInt(getComputedStyle(targetElement).scrollMarginTop) || 0;
+							const boundingTop = targetElement.getBoundingClientRect().top;
+							const targetY = boundingTop + menuScrollPosition - scrollMargin;
+							
+							// Cerrar el menú e ir directamente a la posición del target
+							closePortal(targetY);
+							
+							// Actualizar URL
+							history.pushState(null, "", href);
+						} else {
+							closePortal(null);
+						}
+					}
+				});
+			});
+		}
+
+		// Desktop nav links - scroll suave directo
+		const desktopLinks = document.querySelectorAll(".nav-link");
+		desktopLinks.forEach((link) => {
+			link.addEventListener("click", (e) => {
+				const href = link.getAttribute("href");
+				if (href && href.startsWith("#")) {
+					e.preventDefault();
+					const targetId = href.substring(1);
+					const targetElement = document.getElementById(targetId);
+					if (targetElement) {
+						targetElement.scrollIntoView({
+							behavior: "smooth",
+							block: "start",
+						});
+						history.pushState(null, "", href);
+					}
+				}
+			});
+		});
+
+		// Observer para marcar enlaces activos
+		const categoryLinks = document.querySelectorAll(
+			".nav-link, .mobile-nav-link",
+		);
+
+		const sections = document.querySelectorAll("section[id]");
+		const observerOptions = {
+			root: null,
+			rootMargin: "-20% 0px -60% 0px",
+			threshold: 0,
+		};
+
+		const observer = new IntersectionObserver((entries) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting) {
+					const id = entry.target.getAttribute("id");
+					categoryLinks.forEach((link) => {
+						const href = link.getAttribute("href");
+						if (href === `#${id}`) {
+							link.classList.add("active-link");
+						} else {
+							link.classList.remove("active-link");
+						}
+					});
+				}
+			});
+		}, observerOptions);
+
+		sections.forEach((section) => observer.observe(section));
+	};
+
+	setupNavbar();
+
+	document.addEventListener("astro:page-load", () => {
+		setupNavbar();
+	});
 </script>
+
+<style>
+	/* Navbar con blur sutil y degradado inferior */
+	.navbar-container {
+		background: linear-gradient(
+			to bottom,
+			rgba(247, 247, 242, 0.4) 0%,
+			rgba(247, 247, 242, 0.2) 70%,
+			rgba(247, 247, 242, 0) 100%
+		);
+		backdrop-filter: blur(2px);
+		-webkit-backdrop-filter: blur(2px);
+	}
+
+	/* Cursor blink */
+	@keyframes blink {
+		0%,
+		50% {
+			opacity: 1;
+		}
+		51%,
+		100% {
+			opacity: 0;
+		}
+	}
+
+	.cursor-blink {
+		animation: blink 1s step-end infinite;
+		display: inline-block;
+	}
+
+	/* Nav links con línea activa */
+	.nav-link::after {
+		content: "";
+		position: absolute;
+		bottom: -8px;
+		left: 50%;
+		transform: translateX(-50%) scaleX(0);
+		width: 100%;
+		height: 3px;
+		background: var(--matcha-dark);
+		border-radius: 2px;
+		transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.nav-link:hover::after,
+	.nav-link.active-link::after {
+		transform: translateX(-50%) scaleX(1);
+	}
+
+	/* Mobile menu */
+	#mobile-menu {
+		transition:
+			opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+			visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+			transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+			filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.mobile-nav-link {
+		display: inline-block;
+		transform-origin: center;
+	}
+
+	html {
+		scroll-behavior: smooth;
+	}
+
+	section[id] {
+		scroll-margin-top: 7rem;
+	}
+
+	/* Elementos animados del navbar */
+	.navbar-element {
+		will-change: opacity, transform;
+	}
+</style>

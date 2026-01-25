@@ -1,0 +1,77 @@
+---
+// Navbar simplificado para página de producto
+---
+
+<nav class="fixed top-0 left-0 right-0 z-[2100] navbar-container">
+	<div class="container mx-auto px-6 py-5">
+		<div class="flex items-center justify-between">
+			<!-- LOGO -->
+			<div>
+				<a href="/" class="group flex items-center gap-3">
+					<span
+						class="relative font-playfair text-2xl md:text-3xl font-bold text-sumi-ink group-hover:text-matcha transition-all duration-300 tracking-tight"
+					>
+						Mini wok
+					</span>
+					<span
+						class="text-xs md:text-sm text-matcha-oscuro font-noto-serif opacity-70"
+					>
+						餐厅
+					</span>
+				</a>
+			</div>
+
+			<!-- Botón Volver -->
+			<a
+				href="/"
+				class="inline-flex items-center gap-2 px-4 py-2.5 bg-matcha/10 hover:bg-matcha/20 text-sumi-ink rounded-lg border border-matcha/30 transition-all font-inter text-sm font-medium"
+			>
+				<svg
+					class="w-5 h-5"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+					stroke-width="2"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M10 19l-7-7m0 0l7-7m-7 7h18"
+					></path>
+				</svg>
+				<span class="hidden sm:inline">Volver</span>
+			</a>
+		</div>
+	</div>
+</nav>
+
+<style>
+	/* Navbar con blur sutil y degradado inferior */
+	.navbar-container {
+		background: linear-gradient(
+			to bottom,
+			rgba(247, 247, 242, 0.4) 0%,
+			rgba(247, 247, 242, 0.2) 70%,
+			rgba(247, 247, 242, 0) 100%
+		);
+		backdrop-filter: blur(2px);
+		-webkit-backdrop-filter: blur(2px);
+	}
+
+	/* Cursor blink */
+	@keyframes blink {
+		0%,
+		50% {
+			opacity: 1;
+		}
+		51%,
+		100% {
+			opacity: 0;
+		}
+	}
+
+	.cursor-blink {
+		animation: blink 1s step-end infinite;
+		display: inline-block;
+	}
+</style>

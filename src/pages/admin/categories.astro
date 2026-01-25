@@ -1,11 +1,11 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import AdminLayout from "../../components/admin/AdminLayout";
-import QRPage from "../../components/admin/QRPage";
+import CategoriesPage from "../../components/admin/CategoriesPage";
 ---
 
 <Layout>
     <AdminLayout client:only="react">
-        <QRPage client:load />
+        <CategoriesPage client:load />
     </AdminLayout>
 </Layout>

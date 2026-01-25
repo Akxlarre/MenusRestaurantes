@@ -1,8 +1,21 @@
 import { useStore } from '@nanostores/react';
-import { adminLang, toggleAdminLang } from '../../stores/i18nStore';
+import { useEffect } from 'react';
+import { adminLang, toggleAdminLang, type AdminLanguage } from '../../stores/i18nStore';
+
+const STORAGE_KEY = 'admin-lang';
 
 export default function LanguageToggle() {
     const lang = useStore(adminLang);
+
+    // Sincronizar desde localStorage al montar (para hidratación SSR)
+    useEffect(() => {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored === 'es' || stored === 'zh') {
+            if (stored !== adminLang.get()) {
+                adminLang.set(stored as AdminLanguage);
+            }
+        }
+    }, []);
 
     return (
         <button

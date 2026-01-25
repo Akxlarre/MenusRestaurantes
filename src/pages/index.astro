@@ -3,69 +3,124 @@ import Layout from "../layouts/Layout.astro";
 import PublicNavbar from "../components/public/PublicNavbar.astro";
 import Hero from "../components/public/Hero.astro";
 import MenuCard from "../components/public/MenuCard.astro";
+import SakuraPetals from "../components/public/SakuraPetals.astro";
+import RealtimeMenu from "../components/public/RealtimeMenu.astro";
 import { supabase } from "../lib/supabase";
 
-// Fetch Data (SSR)
+// Fetch Categories
+const { data: categories, error: catError } = await supabase
+	.from("categories")
+	.select("*")
+	.order("display_order", { ascending: true });
+
+if (catError) {
+	console.error("Error fetching categories:", catError);
+}
+
+// Fetch Menu Items with Categories
 const { data: menuItems, error } = await supabase
 	.from("menu_items")
-	.select("*")
-	.order("price", { ascending: true }); // Sort by price usually puts appetizers first, but category sort is better
+	.select(
+		`
+		*,
+		menu_item_categories (
+			categories (
+				id,
+				name_es,
+				name_zh,
+				slug
+			)
+		)
+	`,
+	)
+	.order("price", { ascending: true });
 
 if (error) {
 	console.error("Error fetching menu:", error);
 }
 
-// Group by Category
-const categories = ["Entradas", "Fondos", "Bebidas", "Postres"];
-const groupedItems = categories.reduce(
-	(acc, cat) => {
-		acc[cat] = menuItems?.filter((item) => item.category === cat) || [];
-		return acc;
-	},
-	{} as Record<string, typeof menuItems>,
-);
+// Group items by category (products can appear in multiple sections)
+const groupedItems: Record<string, typeof menuItems> = {};
+
+categories?.forEach((cat) => {
+	groupedItems[cat.slug] =
+		menuItems?.filter((item) =>
+			item.menu_item_categories?.some(
+				(mic: any) => mic.categories.slug === cat.slug,
+			),
+		) || [];
+});
 
 // Filter empty categories
-const activeCategories = categories.filter(
-	(cat) => groupedItems[cat] && groupedItems[cat].length > 0,
-);
+const activeCategories =
+	categories?.filter((cat) => (groupedItems[cat.slug]?.length ?? 0) > 0) ||
+	[];
 ---
 
 <Layout>
+	<SakuraPetals />
 	<PublicNavbar />
 	<Hero />
 
-	<main class="container mx-auto px-4 py-8 pb-20">
-		{
-			activeCategories.map((cat) => (
-				<section id={cat} class="mb-12 scroll-mt-20">
-					<h2 class="text-3xl font-bold mb-6 border-l-4 border-primary pl-4 font-serif">
-						{cat}
-					</h2>
-					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-						{groupedItems[cat].map((item: any) => (
-							<MenuCard {...item} />
-						))}
-					</div>
-				</section>
-			))
-		}
+	<!-- Scroll target para el botón del hero -->
+	<div id="menu"></div>
 
-		{
-			(!menuItems || menuItems.length === 0) && (
-				<div class="text-center py-20 opacity-50">
-					<p>El menú se está cargando o está vacío.</p>
-				</div>
-			)
-		}
+	<!-- Main con mismo fondo que navbar -->
+	<main
+		class="section-spacing"
+		style="background: rgba(247, 247, 242, 0.98);"
+	>
+		<div class="container mx-auto px-6 md:px-12 lg:px-16 max-w-7xl">
+			{
+				activeCategories.map((cat) => (
+					<section id={cat.slug} class="mb-24 scroll-mt-24">
+						{/* Título de sección mejorado */}
+						<div class="mb-12">
+							<p class="text-sm font-noto-serif text-matcha-oscuro tracking-wider uppercase mb-2">
+								{cat.name_zh}
+							</p>
+							<h2 class="text-4xl md:text-5xl font-playfair font-bold text-sumi-ink border-l-4 border-matcha pl-6">
+								{cat.name_es}
+							</h2>
+						</div>
+
+						{/* Lista simple de productos */}
+						<div class="flex flex-col gap-5">
+							{groupedItems[cat.slug]?.map((item: any) => (
+								<MenuCard
+									id={item.id}
+									name_es={item.name_es}
+									name_zh={item.name_zh}
+									price={item.price}
+									is_available={item.is_available}
+								/>
+							))}
+						</div>
+					</section>
+				))
+			}
+
+			{
+				(!menuItems || menuItems.length === 0) && (
+					<div class="text-center py-32 opacity-50">
+						<p class="font-inter text-lg text-sumi-ink">
+							El menú se está cargando o está vacío.
+						</p>
+					</div>
+				)
+			}
+		</div>
 	</main>
 
-	<footer class="footer footer-center p-4 bg-base-300 text-base-content">
-		<aside>
-			<p>
-				Tecnología por <a href="#" class="font-bold text-primary"
-					>AION SpA</a>
+	<!-- Suscripción Realtime para actualizaciones en vivo -->
+	<RealtimeMenu />
+
+	<!-- Footer Zen Moderno -->
+	<footer class="bg-sumi-ink text-arroz py-8">
+		<div class="container mx-auto text-center">
+			<p class="font-inter text-sm opacity-80">
+				Tecnología por <a href="https://aiondevs.cl" target="_blank" rel="noopener noreferrer" class="font-semibold text-matcha hover:text-matcha-oscuro transition-colors">AION DEVS</a>
 			</p>
-		</aside>
+		</div>
 	</footer>
 </Layout>

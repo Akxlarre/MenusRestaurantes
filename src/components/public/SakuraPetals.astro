@@ -1,0 +1,147 @@
+---
+// Componente de pétalos de cerezo flotando
+// Se posiciona fixed para cubrir toda la viewport
+---
+
+<div id="sakura-container" class="fixed inset-0 pointer-events-none z-[5] overflow-hidden">
+    <!-- Los pétalos se generan dinámicamente con JavaScript -->
+</div>
+
+<script>
+    import { gsap } from "gsap";
+
+    const initSakuraPetals = () => {
+        const container = document.getElementById('sakura-container');
+        if (!container) return;
+
+        // Limpiar pétalos existentes
+        container.innerHTML = '';
+
+        const petalCount = 24; // Número de pétalos
+        const petals: HTMLElement[] = [];
+
+        // Crear pétalos
+        for (let i = 0; i < petalCount; i++) {
+            const petal = document.createElement('div');
+            petal.className = 'sakura-petal';
+            petal.innerHTML = `
+                <svg viewBox="0 0 20 20" fill="none" class="w-full h-full">
+                    <ellipse cx="10" cy="10" rx="8" ry="5" fill="currentColor" transform="rotate(${Math.random() * 360} 10 10)"/>
+                </svg>
+            `;
+            
+            // Tamaño aleatorio
+            const size = 12 + Math.random() * 16; // 12-28px
+            petal.style.width = `${size}px`;
+            petal.style.height = `${size}px`;
+            
+            // Posición inicial aleatoria
+            petal.style.position = 'absolute';
+            petal.style.left = `${Math.random() * 100}%`;
+            petal.style.top = `-${20 + Math.random() * 80}px`;
+            
+            // Color rosa con variación
+            const colors = ['#FFB7C5', '#FFDDE5', '#FFE4E8', '#FFC0CB'];
+            petal.style.color = colors[Math.floor(Math.random() * colors.length)];
+            petal.style.opacity = `${0.5 + Math.random() * 0.4}`;
+            
+            container.appendChild(petal);
+            petals.push(petal);
+        }
+
+        // Animar cada pétalo
+        petals.forEach((petal, index) => {
+            animatePetal(petal, index);
+        });
+
+        function animatePetal(petal: HTMLElement, index: number) {
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+            
+            // Valores aleatorios para esta animación
+            const duration = 10 + Math.random() * 15; // 10-25 segundos
+            const delay = Math.random() * 1; // Delay inicial
+            const startX = Math.random() * viewportWidth;
+            const drift = (Math.random() - 0.5) * 200; // Deriva lateral
+            const rotation = Math.random() * 720 - 360; // Rotación durante caída
+
+            // Reset posición
+            gsap.set(petal, {
+                x: startX,
+                y: -50,
+                rotation: Math.random() * 360
+            });
+
+            // Timeline de animación
+            const tl = gsap.timeline({
+                delay: delay,
+                onComplete: () => {
+                    // Reiniciar cuando termine
+                    animatePetal(petal, index);
+                }
+            });
+
+            // Caída principal con movimiento ondulante
+            tl.to(petal, {
+                y: viewportHeight + 100,
+                x: `+=${drift}`,
+                rotation: `+=${rotation}`,
+                duration: duration,
+                ease: "none",
+            });
+
+            // Movimiento ondulante lateral (paralelo)
+            gsap.to(petal, {
+                x: `+=${Math.sin(index) * 50}`,
+                duration: 2 + Math.random() * 2,
+                ease: "sine.inOut",
+                yoyo: true,
+                repeat: -1
+            });
+
+            // Rotación adicional suave
+            gsap.to(petal, {
+                rotationY: 180,
+                duration: 1.5 + Math.random(),
+                ease: "sine.inOut",
+                yoyo: true,
+                repeat: -1
+            });
+        }
+    };
+
+    // Inicializar
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSakuraPetals);
+    } else {
+        initSakuraPetals();
+    }
+
+    // Re-inicializar en navegación de Astro
+    document.addEventListener('astro:page-load', initSakuraPetals);
+
+    // Reinicializar en resize (debounced)
+    let resizeTimeout: number;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = window.setTimeout(initSakuraPetals, 500);
+    });
+</script>
+
+<style>
+    .sakura-petal {
+        filter: drop-shadow(0 1px 2px rgba(255, 183, 197, 0.3));
+        will-change: transform;
+    }
+
+    .sakura-petal svg {
+        filter: blur(0.3px);
+    }
+
+    /* Reducir animaciones en preferencia de movimiento reducido */
+    @media (prefers-reduced-motion: reduce) {
+        #sakura-container {
+            display: none;
+        }
+    }
+</style>

@@ -41,7 +41,7 @@ export default function QRGenerator() {
 
         // Logo / Header
         doc.setFontSize(22);
-        doc.text('AION Menu', pageWidth / 2, 20, { align: 'center' });
+        doc.text('Mini wok', pageWidth / 2, 20, { align: 'center' });
 
         doc.setFontSize(12);
         doc.text(`${MENU_URL}`, pageWidth / 2, 30, { align: 'center' });
@@ -75,43 +75,69 @@ export default function QRGenerator() {
     };
 
     return (
-        <div className="card bg-base-100 shadow-xl max-w-2xl mx-auto">
-            <div className="card-body">
-                <h2 className="card-title justify-center mb-6">{lang === 'es' ? 'Generador de QR' : '二维码生成器'}</h2>
+        <div className="bg-white border border-[#E8C4C4]/30 rounded-2xl shadow-sm max-w-2xl mx-auto overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-[#E8C4C4]/20 text-center">
+                <h2 className="font-['Playfair_Display'] text-xl font-bold text-[#1C1C1E]">
+                    {t.qrGenerator}
+                </h2>
+                <p className="text-[#5A5A5C] text-sm mt-1">{t.downloadQRs}</p>
+            </div>
 
-                <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
+            <div className="p-6">
+                <div className="flex flex-col md:flex-row gap-8 items-center">
                     {/* Preview */}
                     <div className="flex flex-col items-center">
-                        <div className="bg-white p-4 rounded-xl shadow-inner">
-                            {qrUrl ? <img src={qrUrl} alt="QR Code" className="w-48 h-48" /> : <div className="skeleton w-48 h-48"></div>}
+                        <div className="bg-[#F7F7F2] p-4 rounded-2xl border border-[#E8C4C4]/30">
+                            {qrUrl ? (
+                                <img src={qrUrl} alt="QR Code" className="w-48 h-48" />
+                            ) : (
+                                <div className="w-48 h-48 flex items-center justify-center">
+                                    <span className="loading loading-spinner loading-lg text-[#B84A4A]"></span>
+                                </div>
+                            )}
                         </div>
-                        <p className="text-sm mt-4 opacity-50 font-mono">{MENU_URL}</p>
+                        <p className="text-xs mt-4 text-[#5A5A5C]/50 font-mono">{MENU_URL}</p>
                     </div>
 
                     {/* Info & Actions */}
                     <div className="flex-1 space-y-4">
-                        <div className="alert alert-info shadow-sm text-sm">
-                            <div>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div className="bg-[#F7F7F2] border border-[#E8C4C4]/30 rounded-xl p-4">
+                            <div className="flex gap-3">
+                                <div className="w-10 h-10 bg-[#B84A4A]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-5 h-5 text-[#B84A4A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
                                 <div>
-                                    <h3 className="font-bold">{lang === 'es' ? '¿Cuánto dura este QR?' : '二维码有效期？'}</h3>
-                                    <div className="text-xs opacity-90">
-                                        {lang === 'es'
-                                            ? 'Este QR es ETERNO mientras tu dominio web exista. Si actualizas platos o precios, el QR sigue funcionando porque envía a los clientes a tu sitio web, donde ven la información en tiempo real.'
-                                            : '只要您的网站域名存在，此二维码永久有效。如果您更新菜品或价格，二维码仍然有效，因为它会将客户通过引导至您的网站来查看实时信息。'}
-                                    </div>
+                                    <h3 className="font-semibold text-[#1C1C1E] text-sm">
+                                        {t.qrDuration}
+                                    </h3>
+                                    <p className="text-xs text-[#5A5A5C] mt-1 leading-relaxed">
+                                        {t.qrInfo}
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
                         <button
                             onClick={downloadPDF}
-                            className="btn btn-primary w-full gap-2"
+                            className="w-full py-3 px-4 bg-[#B84A4A] hover:bg-[#8B3A3A] text-white font-semibold rounded-xl shadow-md shadow-[#B84A4A]/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             disabled={loading}
                         >
-                            {loading ? <span className="loading loading-spinner"></span> : '📄'}
-                            {lang === 'es' ? 'Descargar PDF para Imprimir (x6)' : '下载 PDF (x6)'}
+                            {loading ? (
+                                <span className="loading loading-spinner loading-sm"></span>
+                            ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            )}
+                            {t.downloadPDF}
                         </button>
+
+                        <p className="text-xs text-center text-[#5A5A5C]/50">
+                            {t.pdfIncludes}
+                        </p>
                     </div>
                 </div>
             </div>

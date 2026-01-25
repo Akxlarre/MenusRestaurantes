@@ -1,0 +1,140 @@
+---
+// Componente para suscribirse a cambios realtime de Supabase
+// Actualiza el DOM cuando cambia la disponibilidad de productos
+
+// Pasar las variables de entorno al cliente
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+---
+
+<!-- Inyectar credenciales para el cliente -->
+<div 
+    id="supabase-config" 
+    data-url={supabaseUrl} 
+    data-key={supabaseKey}
+    style="display: none;"
+></div>
+
+<script>
+    import { createClient } from '@supabase/supabase-js';
+
+    const initRealtime = () => {
+        // Obtener credenciales del elemento oculto
+        const configEl = document.getElementById('supabase-config');
+        if (!configEl) {
+            console.warn('Config element not found');
+            return;
+        }
+        
+        const supabaseUrl = configEl.dataset.url;
+        const supabaseKey = configEl.dataset.key;
+        
+        if (!supabaseUrl || !supabaseKey) {
+            console.warn('Supabase credentials not found for realtime');
+            return;
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // Suscribirse a cambios en menu_items
+        const channel = supabase
+            .channel('menu-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'menu_items'
+                },
+                (payload) => {
+                    console.log('Realtime update:', payload);
+                    handleProductUpdate(payload.new as ProductUpdate);
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✓ Conectado a realtime de menú');
+                }
+            });
+
+        // Cleanup en navegación
+        document.addEventListener('astro:before-preparation', () => {
+            supabase.removeChannel(channel);
+        });
+    };
+
+    interface ProductUpdate {
+        id: string;
+        is_available: boolean;
+        name_es?: string;
+        name_zh?: string;
+        price?: number;
+    }
+
+    const handleProductUpdate = (product: ProductUpdate) => {
+        // Buscar la card del producto
+        const card = document.querySelector(`[data-product-id="${product.id}"]`) as HTMLElement;
+        
+        if (!card) {
+            console.log('Producto no encontrado en el DOM:', product.id);
+            return;
+        }
+
+        // Actualizar disponibilidad
+        const wasAvailable = card.dataset.available === 'true';
+        const isNowAvailable = product.is_available;
+
+        if (wasAvailable !== isNowAvailable) {
+            // Actualizar data attribute
+            card.dataset.available = isNowAvailable.toString();
+
+            // Actualizar clases de opacidad
+            if (isNowAvailable) {
+                card.classList.remove('opacity-50');
+            } else {
+                card.classList.add('opacity-50');
+            }
+
+            // Mostrar/ocultar badge "Agotado"
+            const badge = card.querySelector('.unavailable-badge') as HTMLElement;
+            if (badge) {
+                badge.style.display = isNowAvailable ? 'none' : 'inline-block';
+            }
+
+            // Animación visual de cambio
+            card.style.transition = 'all 0.3s ease';
+            card.style.transform = 'scale(1.02)';
+            card.style.boxShadow = isNowAvailable 
+                ? '0 0 20px rgba(74, 138, 44, 0.3)' 
+                : '0 0 20px rgba(194, 74, 74, 0.3)';
+            
+            setTimeout(() => {
+                card.style.transform = '';
+                card.style.boxShadow = '';
+            }, 500);
+
+            console.log(`Producto ${product.id} actualizado: disponible = ${isNowAvailable}`);
+        }
+
+        // Actualizar precio si cambió
+        if (product.price !== undefined) {
+            const priceElement = card.querySelector('.tabular-nums');
+            if (priceElement) {
+                const newPrice = `$${product.price.toLocaleString('es-CL')}`;
+                if (priceElement.textContent !== newPrice) {
+                    priceElement.textContent = newPrice;
+                }
+            }
+        }
+    };
+
+    // Inicializar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initRealtime);
+    } else {
+        initRealtime();
+    }
+
+    // Re-inicializar en navegación de Astro
+    document.addEventListener('astro:page-load', initRealtime);
+</script>

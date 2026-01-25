@@ -1,0 +1,192 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ProductNavbar from "../../components/public/ProductNavbar.astro";
+import SakuraPetals from "../../components/public/SakuraPetals.astro";
+import { supabase } from "../../lib/supabase";
+
+// Renderizado del lado del servidor para rutas dinámicas
+export const prerender = false;
+
+const { id } = Astro.params;
+
+// Fetch product details with categories
+const { data: product, error } = await supabase
+    .from("menu_items")
+    .select(
+        `
+		*,
+		menu_item_categories (
+			categories (
+				id,
+				name_es,
+				name_zh,
+				slug
+			)
+		)
+	`,
+    )
+    .eq("id", id)
+    .single();
+
+if (error || !product) {
+    return Astro.redirect("/404");
+}
+
+// Fallback images por categoría
+const categoryImages: Record<string, string> = {
+    Entradas: "https://images.unsplash.com/photo-1563245372-1c36e80e8a1e?w=800",
+    Fondos: "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800",
+    Bebidas: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=800",
+    Postres: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800",
+};
+
+const firstCategory =
+    product.menu_item_categories?.[0]?.categories?.slug || "Fondos";
+const fallbackImage = categoryImages[firstCategory] || categoryImages.Fondos;
+---
+
+<Layout>
+    <SakuraPetals />
+    <ProductNavbar />
+
+    <!-- Hero del producto -->
+    <div
+        class="min-h-screen bg-gradient-to-b from-arroz via-blanco-papel to-arroz pt-24 pb-16"
+    >
+        <div class="container mx-auto px-6 md:px-12 lg:px-16 max-w-5xl">
+            <!-- Grid: Imagen + Detalles -->
+            <div class="grid md:grid-cols-2 gap-12 items-start">
+                <!-- Imagen del producto -->
+                <div class="relative">
+                    <figure
+                        class="aspect-square rounded-2xl overflow-hidden shadow-card"
+                    >
+                        <img
+                            src={product.image_url || fallbackImage}
+                            alt={product.name_es}
+                            class="w-full h-full object-cover"
+                        />
+                    </figure>
+
+                    {
+                        !product.is_available && (
+                            <div class="absolute top-4 right-4">
+                                <span class="badge-agotado text-sm px-4 py-2">
+                                    Agotado
+                                </span>
+                            </div>
+                        )
+                    }
+                </div>
+
+                <!-- Detalles del producto -->
+                <div class="flex flex-col gap-6">
+                    <!-- Categorías -->
+                    <div class="flex flex-wrap gap-2">
+                        {
+                            product.menu_item_categories?.map((mic: any) => (
+                                <span class="text-xs font-inter px-3 py-1 rounded-full bg-matcha/10 text-matcha-oscuro border border-matcha/20">
+                                    {mic.categories.name_zh}{" "}
+                                    {mic.categories.name_es}
+                                </span>
+                            ))
+                        }
+                    </div>
+
+                    <!-- Nombre -->
+                    <div>
+                        <h1 class="text-section-title mb-3">
+                            {product.name_es}
+                        </h1>
+                        <p class="text-dish-name-cjk text-3xl">
+                            {product.name_zh}
+                        </p>
+                    </div>
+
+                    <!-- Descripción (si existe) -->
+                    {
+                        (product.description_es || product.description_zh) && (
+                            <div class="space-y-2">
+                                {product.description_es && (
+                                    <p class="text-description text-base leading-relaxed">
+                                        {product.description_es}
+                                    </p>
+                                )}
+                                {product.description_zh && (
+                                    <p class="font-noto-serif text-matcha-oscuro opacity-80">
+                                        {product.description_zh}
+                                    </p>
+                                )}
+                            </div>
+                        )
+                    }
+
+                    <!-- Línea decorativa -->
+                    <div class="h-px bg-matcha-light my-2"></div>
+
+                    <!-- Precio -->
+                    <div class="flex items-baseline gap-3">
+                        <span
+                            class="text-4xl font-inter font-bold text-sumi-ink tabular-nums"
+                        >
+                            ${product.price.toLocaleString("es-CL")}
+                        </span>
+                        <span class="text-sm text-matcha-oscuro font-inter">
+                            Precio por porción
+                        </span>
+                    </div>
+
+                    <!-- Estado de disponibilidad -->
+                    <div class="mt-4">
+                        {
+                            product.is_available ? (
+                                <div class="flex items-center gap-2 text-disponible">
+                                    <svg
+                                        class="w-5 h-5"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                    >
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                            clip-rule="evenodd"
+                                        />
+                                    </svg>
+                                    <span class="font-inter font-medium">
+                                        Disponible
+                                    </span>
+                                </div>
+                            ) : (
+                                <div class="flex items-center gap-2 text-agotado">
+                                    <svg
+                                        class="w-5 h-5"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                    >
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                            clip-rule="evenodd"
+                                        />
+                                    </svg>
+                                    <span class="font-inter font-medium">
+                                        Temporalmente agotado
+                                    </span>
+                                </div>
+                            )
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Zen Moderno -->
+    <footer class="bg-sumi-ink text-arroz py-8">
+        <div class="container mx-auto text-center">
+            <p class="font-inter text-sm opacity-80">
+                Tecnología por <a href="https://aiondevs.cl" target="_blank" rel="noopener noreferrer" class="font-semibold text-matcha hover:text-matcha-oscuro transition-colors">AION DEVS</a>
+            </p>
+        </div>
+    </footer>
+</Layout>

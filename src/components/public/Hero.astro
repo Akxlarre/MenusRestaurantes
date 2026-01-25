@@ -1,18 +1,356 @@
 <div
-    class="hero min-h-[40vh] bg-base-200"
-    style="background-image: url('https://images.unsplash.com/photo-1541614101331-1a5a3a194e92?q=80&w=1000&auto=format&fit=crop');"
+    class="hero min-h-screen pt-24 relative overflow-hidden flex items-center justify-center"
+    style="background: rgba(247, 247, 242, 0.98);"
 >
-    <div class="hero-overlay bg-black/60"></div>
-    <div class="hero-content text-center text-neutral-content">
-        <div class="max-w-md">
-            <h1 class="mb-5 text-5xl font-bold font-serif tracking-wider">
-                AION 🐉
+    <!-- Rama de cerezo izquierda -->
+    <svg 
+        class="sakura-branch sakura-branch-left absolute top-0 left-0 w-56 md:w-72 lg:w-80 h-auto opacity-40 pointer-events-none z-[1]"
+        viewBox="0 0 300 400" 
+        fill="none"
+    >
+        <!-- Rama principal -->
+        <path 
+            class="branch-stroke"
+            d="M-20 0 Q 60 80, 80 150 Q 100 220, 140 280 Q 160 320, 200 380" 
+            stroke="#8B5A5B" 
+            stroke-width="8" 
+            stroke-linecap="round"
+            fill="none"
+        />
+        <!-- Rama secundaria 1 -->
+        <path 
+            d="M60 100 Q 90 130, 120 140" 
+            stroke="#8B5A5B" 
+            stroke-width="4" 
+            stroke-linecap="round"
+            fill="none"
+        />
+        <!-- Rama secundaria 2 -->
+        <path 
+            d="M90 180 Q 130 200, 160 190" 
+            stroke="#8B5A5B" 
+            stroke-width="3" 
+            stroke-linecap="round"
+            fill="none"
+        />
+        <!-- Flores de cerezo -->
+        <g class="sakura-flowers">
+            <!-- Flor 1 -->
+            <circle cx="120" cy="135" r="12" fill="#FFB7C5" opacity="0.9"/>
+            <circle cx="120" cy="135" r="6" fill="#FFDDE5"/>
+            <circle cx="120" cy="135" r="3" fill="#FFE4E8"/>
+            <!-- Flor 2 -->
+            <circle cx="155" cy="185" r="10" fill="#FFB7C5" opacity="0.85"/>
+            <circle cx="155" cy="185" r="5" fill="#FFDDE5"/>
+            <circle cx="155" cy="185" r="2.5" fill="#FFE4E8"/>
+            <!-- Flor 3 -->
+            <circle cx="80" cy="155" r="8" fill="#FFB7C5" opacity="0.8"/>
+            <circle cx="80" cy="155" r="4" fill="#FFDDE5"/>
+            <!-- Flor 4 -->
+            <circle cx="140" cy="275" r="11" fill="#FFB7C5" opacity="0.9"/>
+            <circle cx="140" cy="275" r="5.5" fill="#FFDDE5"/>
+            <circle cx="140" cy="275" r="2.5" fill="#FFE4E8"/>
+            <!-- Flor 5 -->
+            <circle cx="100" cy="220" r="9" fill="#FFB7C5" opacity="0.85"/>
+            <circle cx="100" cy="220" r="4.5" fill="#FFDDE5"/>
+        </g>
+    </svg>
+
+    <!-- Rama de cerezo derecha (espejada con wrapper, más corta) -->
+    <div class="sakura-branch-wrapper absolute top-0 right-0 w-48 md:w-60 lg:w-72 pointer-events-none z-[1]" style="transform: scaleX(-1);">
+        <svg 
+            class="sakura-branch sakura-branch-right w-full h-auto opacity-40"
+            viewBox="0 0 300 400" 
+            fill="none"
+        >
+        <!-- Rama principal -->
+        <path 
+            d="M-20 0 Q 60 80, 80 150 Q 100 220, 140 280 Q 160 320, 200 380" 
+            stroke="#8B5A5B" 
+            stroke-width="8" 
+            stroke-linecap="round"
+            fill="none"
+        />
+        <!-- Rama secundaria 1 -->
+        <path 
+            d="M60 100 Q 90 130, 120 140" 
+            stroke="#8B5A5B" 
+            stroke-width="4" 
+            stroke-linecap="round"
+            fill="none"
+        />
+        <!-- Rama secundaria 2 -->
+        <path 
+            d="M90 180 Q 130 200, 160 190" 
+            stroke="#8B5A5B" 
+            stroke-width="3" 
+            stroke-linecap="round"
+            fill="none"
+        />
+        <!-- Flores de cerezo -->
+        <g class="sakura-flowers">
+            <circle cx="120" cy="135" r="12" fill="#FFB7C5" opacity="0.9"/>
+            <circle cx="120" cy="135" r="6" fill="#FFDDE5"/>
+            <circle cx="120" cy="135" r="3" fill="#FFE4E8"/>
+            <circle cx="155" cy="185" r="10" fill="#FFB7C5" opacity="0.85"/>
+            <circle cx="155" cy="185" r="5" fill="#FFDDE5"/>
+            <circle cx="155" cy="185" r="2.5" fill="#FFE4E8"/>
+            <circle cx="80" cy="155" r="8" fill="#FFB7C5" opacity="0.8"/>
+            <circle cx="80" cy="155" r="4" fill="#FFDDE5"/>
+            <circle cx="140" cy="275" r="11" fill="#FFB7C5" opacity="0.9"/>
+            <circle cx="140" cy="275" r="5.5" fill="#FFDDE5"/>
+            <circle cx="140" cy="275" r="2.5" fill="#FFE4E8"/>
+            <circle cx="100" cy="220" r="9" fill="#FFB7C5" opacity="0.85"/>
+            <circle cx="100" cy="220" r="4.5" fill="#FFDDE5"/>
+        </g>
+        </svg>
+    </div>
+
+    <div class="hero-content text-center relative z-10 px-6">
+        <div class="max-w-4xl">
+            <!-- Logo principal -->
+            <h1
+                id="hero-title"
+                class="hero-element font-playfair text-6xl md:text-7xl lg:text-8xl font-bold text-sumi-ink mb-4 tracking-tight"
+            >
+                Mini wok
             </h1>
-            <p class="mb-5 text-lg">Auténtica Gastronomía China</p>
-            <div class="flex justify-center gap-4">
-                <div class="badge badge-outline">Abierto hasta 22:00</div>
-                <div class="badge badge-accent">Delivery Disponible</div>
+
+            <!-- Línea decorativa con color accesible -->
+            <div id="hero-line" class="hero-element w-32 h-1 bg-matcha-dark mx-auto mb-8 rounded-full">
+            </div>
+
+            <!-- Caracteres CJK con color accesible (contraste 7:1) -->
+            <p
+                id="hero-cjk"
+                class="hero-element font-noto-serif text-3xl md:text-4xl text-matcha-text mb-10 tracking-wide font-medium"
+            >
+                美食之旅
+            </p>
+
+            <!-- Subtítulo con color accesible -->
+            <p
+                id="hero-subtitle"
+                class="hero-element font-inter text-lg md:text-xl text-gris tracking-wide max-w-2xl mx-auto leading-relaxed"
+            >
+                Una experiencia sensorial que fusiona tradición y modernidad
+            </p>
+
+            <!-- Call to action con alto contraste -->
+            <div id="hero-cta" class="hero-element mt-12">
+                <a
+                    href="#menu"
+                    class="hero-button inline-flex items-center gap-2 px-8 py-4 bg-matcha-text hover:bg-matcha-dark text-arroz font-inter font-semibold rounded-lg transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg"
+                >
+                    Explorar Menú
+                    <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    import { gsap } from "gsap";
+
+    // ===== ANIMACIÓN "AMANECER ZEN" =====
+    const initHeroAnimation = () => {
+        // Verificar si ya se animó (evitar re-animación en navegación)
+        const hero = document.querySelector('.hero');
+        if (!hero || hero.hasAttribute('data-animated')) return;
+        hero.setAttribute('data-animated', 'true');
+
+        // Elementos del Hero
+        const title = document.getElementById('hero-title');
+        const line = document.getElementById('hero-line');
+        const cjk = document.getElementById('hero-cjk');
+        const subtitle = document.getElementById('hero-subtitle');
+        const cta = document.getElementById('hero-cta');
+        const branchLeft = hero.querySelector('.sakura-branch-left');
+        const branchRight = hero.querySelector('.sakura-branch-right');
+
+        // Elementos del Navbar
+        const navbarElements = document.querySelectorAll('.navbar-element');
+
+        // Estado inicial: todo invisible
+        gsap.set([title, line, cjk, subtitle, cta], { 
+            opacity: 0, 
+            y: 30 
+        });
+        gsap.set(line, { 
+            scaleX: 0, 
+            y: 0 
+        });
+        // Ramas - establecer estado inicial solo si existen
+        if (branchLeft) gsap.set(branchLeft, { opacity: 0 });
+        if (branchRight) gsap.set(branchRight, { opacity: 0 });
+        
+        gsap.set(navbarElements, {
+            opacity: 0,
+            y: -20
+        });
+
+        // Timeline de entrada "Amanecer Zen"
+        const tl = gsap.timeline({
+            defaults: { 
+                ease: "power2.out" 
+            }
+        });
+
+        tl
+            // 0. Navbar aparece primero (desde arriba)
+            .to(navbarElements, {
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
+                stagger: 0.1,
+                ease: "power2.out"
+            });
+        
+        // 1. Ramas aparecen en paralelo (casi simultáneas)
+        if (branchLeft) {
+            tl.to(branchLeft, {
+                opacity: 0.4,
+                duration: 1.2,
+                ease: "power1.inOut"
+            }, "-=0.2");
+        }
+        if (branchRight) {
+            tl.to(branchRight, {
+                opacity: 0.4,
+                duration: 1.2,
+                ease: "power1.inOut"
+            }, "<0.3"); // Empieza 0.3s después de que inicia branchLeft
+        }
+        
+        tl
+            // 3. Título emerge desde abajo
+            .to(title, {
+                opacity: 1,
+                y: 0,
+                duration: 0.9,
+                ease: "power3.out"
+            }, "-=0.5")
+            // 4. Línea decorativa se expande desde el centro
+            .to(line, {
+                opacity: 1,
+                scaleX: 1,
+                duration: 0.6,
+                ease: "power2.inOut"
+            }, "-=0.4")
+            // 5. Caracteres chinos aparecen con scale sutil
+            .fromTo(cjk, 
+                { opacity: 0, scale: 0.9, y: 20 },
+                { opacity: 1, scale: 1, y: 0, duration: 0.7, ease: "back.out(1.2)" },
+                "-=0.3"
+            )
+            // 6. Subtítulo fade in
+            .to(subtitle, {
+                opacity: 1,
+                y: 0,
+                duration: 0.6
+            }, "-=0.3")
+            // 7. Botón aparece último
+            .to(cta, {
+                opacity: 1,
+                y: 0,
+                duration: 0.5,
+                ease: "back.out(1.5)"
+            }, "-=0.2")
+            // 8. Efecto "breathing" sutil en el botón al terminar
+            .to('.hero-button', {
+                boxShadow: "0 0 20px rgba(184, 74, 74, 0.3)",
+                duration: 0.4,
+                yoyo: true,
+                repeat: 1,
+                ease: "sine.inOut"
+            });
+
+        // Iniciar animaciones continuas después de la entrada
+        tl.call(initContinuousAnimations);
+    };
+
+    // ===== ANIMACIONES CONTINUAS (ramas y flores) =====
+    const initContinuousAnimations = () => {
+        const branchLeft = document.querySelector('.sakura-branch-left');
+        const branchRight = document.querySelector('.sakura-branch-right');
+        
+        // Balanceo sutil rama izquierda
+        if (branchLeft) {
+            gsap.to(branchLeft, {
+                rotation: 2,
+                transformOrigin: "top left",
+                duration: 4,
+                ease: "sine.inOut",
+                yoyo: true,
+                repeat: -1
+            });
+        }
+        
+        if (branchRight) {
+            gsap.to(branchRight, {
+                rotation: -5, // Negativo para balanceo opuesto (el wrapper scaleX(-1) lo invierte visualmente)
+                transformOrigin: "top left",
+                duration: 3,
+                ease: "sine.inOut",//
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
+        // Animación de las flores (pulso sutil)
+        const flowers = document.querySelectorAll('.sakura-flowers circle');
+        flowers.forEach((flower, index) => {
+            gsap.to(flower, {
+                scale: 1.1,
+                transformOrigin: "center",
+                duration: 2 + (index * 0.2),
+                ease: "sine.inOut",
+                yoyo: true,
+                repeat: -1,
+                delay: index * 0.1
+            });
+        });
+    };
+
+    // Inicializar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initHeroAnimation);
+    } else {
+        initHeroAnimation();
+    }
+
+    // Re-inicializar en navegación de Astro
+    document.addEventListener('astro:page-load', initHeroAnimation);
+</script>
+
+<style>
+    /* Estilos para las ramas */
+    .sakura-branch {
+        filter: drop-shadow(0 2px 4px rgba(139, 90, 91, 0.2));
+    }
+
+    .sakura-branch-left {
+        transform-origin: top left;
+    }
+
+    .sakura-branch-right {
+        transform-origin: top right;
+    }
+
+    /* Elementos del hero (estado inicial controlado por GSAP) */
+    .hero-element {
+        will-change: opacity, transform;
+    }
+</style>
