@@ -282,13 +282,22 @@
     };
 
     // ===== ANIMACIONES CONTINUAS (ramas y flores) =====
+    // Guardamos referencias a los tweens para poder pausarlos/resumirlos
+    let heroTweens: gsap.core.Tween[] = [];
+    let heroObserver: IntersectionObserver | null = null;
+
     const initContinuousAnimations = () => {
+        const hero = document.querySelector('.hero');
         const branchLeft = document.querySelector('.sakura-branch-left');
         const branchRight = document.querySelector('.sakura-branch-right');
         
+        // Limpiar tweens anteriores si existen
+        heroTweens.forEach(t => t.kill());
+        heroTweens = [];
+        
         // Balanceo sutil rama izquierda
         if (branchLeft) {
-            gsap.to(branchLeft, {
+            const tween = gsap.to(branchLeft, {
                 rotation: 2,
                 transformOrigin: "top left",
                 duration: 4,
@@ -296,23 +305,25 @@
                 yoyo: true,
                 repeat: -1
             });
+            heroTweens.push(tween);
         }
         
         if (branchRight) {
-            gsap.to(branchRight, {
+            const tween = gsap.to(branchRight, {
                 rotation: -5, // Negativo para balanceo opuesto (el wrapper scaleX(-1) lo invierte visualmente)
                 transformOrigin: "top left",
                 duration: 3,
-                ease: "sine.inOut",//
+                ease: "sine.inOut",
                 yoyo: true,
                 repeat: -1
             });
+            heroTweens.push(tween);
         }
 
         // Animación de las flores (pulso sutil)
         const flowers = document.querySelectorAll('.sakura-flowers circle');
         flowers.forEach((flower, index) => {
-            gsap.to(flower, {
+            const tween = gsap.to(flower, {
                 scale: 1.1,
                 transformOrigin: "center",
                 duration: 2 + (index * 0.2),
@@ -321,7 +332,28 @@
                 repeat: -1,
                 delay: index * 0.1
             });
+            heroTweens.push(tween);
         });
+
+        // Configurar IntersectionObserver para pausar/resumir cuando el Hero sale del viewport
+        // Esto evita conflictos con las animaciones de pétalos en móviles
+        if (hero && !heroObserver) {
+            heroObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // Hero visible: resumir animaciones
+                        heroTweens.forEach(t => t.resume());
+                    } else {
+                        // Hero fuera de vista: pausar animaciones
+                        heroTweens.forEach(t => t.pause());
+                    }
+                });
+            }, { 
+                threshold: 0.1 // Se activa cuando al menos 10% del Hero es visible
+            });
+
+            heroObserver.observe(hero);
+        }
     };
 
     // Inicializar cuando el DOM esté listo
