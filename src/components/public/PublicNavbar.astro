@@ -294,8 +294,12 @@ const displayCategories =
 							// Cerrar el menú e ir directamente a la posición del target
 							closePortal(targetY);
 							
-							// Actualizar URL
-							history.pushState(null, "", href);
+							// Actualizar URL sin añadir al historial (evita doble "volver")
+							console.log('=== MOBILE CATEGORY CLICK ===');
+							console.log('Before replaceState - URL:', window.location.href);
+							console.log('History length:', window.history.length);
+							history.replaceState(null, "", href);
+							console.log('After replaceState - URL:', window.location.href);
 						} else {
 							closePortal(null);
 						}
@@ -318,7 +322,12 @@ const displayCategories =
 							behavior: "smooth",
 							block: "start",
 						});
-						history.pushState(null, "", href);
+						// Actualizar URL sin añadir al historial (evita doble "volver")
+						console.log('=== DESKTOP CATEGORY CLICK ===');
+						console.log('Before replaceState - URL:', window.location.href);
+						console.log('History length:', window.history.length);
+						history.replaceState(null, "", href);
+						console.log('After replaceState - URL:', window.location.href);
 					}
 				}
 			});

@@ -48,31 +48,38 @@
 <script>
 	// Usar event delegation para evitar múltiples listeners
 	// Solo un listener global que no se duplica
-	if (!window.__backButtonHandlerRegistered) {
-		window.__backButtonHandlerRegistered = true;
+	const win = window as Window & { __backButtonHandlerRegistered?: boolean };
+	if (!win.__backButtonHandlerRegistered) {
+		win.__backButtonHandlerRegistered = true;
 		
 		document.addEventListener('click', (e) => {
-			const backButton = e.target.closest('#back-button');
+			const backButton = (e.target as HTMLElement).closest('#back-button');
 			if (backButton) {
 				e.preventDefault();
 				e.stopPropagation();
 				
-				console.log('=== BACK BUTTON (delegated) ===');
-				console.log('History length:', window.history.length);
-				
-				// Siempre usar history.back() si hay historial
-				// El historial de Astro View Transitions es confiable
-				if (window.history.length > 1) {
-					console.log('ACTION: history.back()');
-					window.history.back();
-				} else {
-					console.log('ACTION: redirect to /');
-					window.location.href = '/';
+				// Solo procesar si estamos en una página de producto
+				if (!window.location.pathname.startsWith('/menu/')) {
+					console.log('Not on product page, ignoring back button');
+					return;
 				}
+				
+				console.log('=== BACK BUTTON CLICKED ===');
+				console.log('Current URL:', window.location.href);
+				console.log('ACTION: Navigate to /');
+				
+				// Navegar directamente a / usando View Transitions de Astro
+				// Esto es más confiable que history.back() con historiales complejos
+				window.location.href = '/';
 			}
 		});
 		
-		console.log('Back button handler registered (delegated)');
+		// Log cuando llegamos a la página de producto
+		if (window.location.pathname.startsWith('/menu/')) {
+			console.log('=== PRODUCT PAGE LOADED ===');
+			console.log('Current URL:', window.location.href);
+			console.log('History length:', window.history.length);
+		}
 	}
 </script>
 

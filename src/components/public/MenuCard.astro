@@ -76,13 +76,26 @@ const { id, name_es, name_zh, price, is_available } = Astro.props;
 
 <script>
     // Event delegation para evitar múltiples listeners
-    if (!window.__menuCardHandlerRegistered) {
-        window.__menuCardHandlerRegistered = true;
+    const win = window as Window & { __menuCardHandlerRegistered?: boolean };
+    if (!win.__menuCardHandlerRegistered) {
+        win.__menuCardHandlerRegistered = true;
         
         // Guardar scroll al hacer clic en un producto
         document.addEventListener('click', (e) => {
             const card = (e.target as HTMLElement).closest('.menu-item-card');
             if (card) {
+                console.log('=== MENU CARD CLICK ===');
+                console.log('Current URL before cleanup:', window.location.href);
+                console.log('History length:', window.history.length);
+                
+                // Si hay un hash en la URL, limpiarlo ANTES de navegar
+                // Esto evita que Astro guarde la URL con hash en el historial
+                if (window.location.hash) {
+                    console.log('Cleaning hash from URL before navigation');
+                    history.replaceState(null, "", window.location.pathname);
+                    console.log('URL after cleanup:', window.location.href);
+                }
+                
                 const scrollPos = window.scrollY;
                 sessionStorage.setItem('menuScrollPosition', scrollPos.toString());
                 // Marcar que navegamos a un detalle
@@ -92,9 +105,15 @@ const { id, name_es, name_zh, price, is_available } = Astro.props;
 
         // Restaurar scroll al volver a la página principal
         document.addEventListener('astro:page-load', () => {
+            console.log('=== ASTRO PAGE LOAD ===');
+            console.log('URL:', window.location.href);
+            console.log('History length:', window.history.length);
+            
             if (window.location.pathname === '/') {
                 const savedScroll = sessionStorage.getItem('menuScrollPosition');
                 const navigatedToDetail = sessionStorage.getItem('navigatedToDetail');
+                
+                console.log('On home page - savedScroll:', savedScroll, 'navigatedToDetail:', navigatedToDetail);
                 
                 // Solo restaurar si venimos de un detalle de producto
                 if (savedScroll && navigatedToDetail === 'true') {
@@ -111,6 +130,11 @@ const { id, name_es, name_zh, price, is_available } = Astro.props;
                 }
             }
         });
+        
+        // Log inicial
+        console.log('=== MENU CARD HANDLER INIT ===');
+        console.log('Current URL:', window.location.href);
+        console.log('History length:', window.history.length);
     }
 </script>
 
