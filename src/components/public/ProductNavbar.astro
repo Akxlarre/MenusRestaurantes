@@ -22,9 +22,9 @@
 			</div>
 
 			<!-- Botón Volver -->
-			<a
-				href="/"
-				class="inline-flex items-center gap-2 px-4 py-2.5 bg-matcha/10 hover:bg-matcha/20 text-sumi-ink rounded-lg border border-matcha/30 transition-all font-inter text-sm font-medium"
+			<button
+				id="back-button"
+				class="inline-flex items-center gap-2 px-4 py-2.5 bg-matcha/10 hover:bg-matcha/20 text-sumi-ink rounded-lg border border-matcha/30 transition-all font-inter text-sm font-medium cursor-pointer"
 			>
 				<svg
 					class="w-5 h-5"
@@ -40,10 +40,41 @@
 					></path>
 				</svg>
 				<span class="hidden sm:inline">Volver</span>
-			</a>
+			</button>
 		</div>
 	</div>
 </nav>
+
+<script>
+	// Usar event delegation para evitar múltiples listeners
+	// Solo un listener global que no se duplica
+	if (!window.__backButtonHandlerRegistered) {
+		window.__backButtonHandlerRegistered = true;
+		
+		document.addEventListener('click', (e) => {
+			const backButton = e.target.closest('#back-button');
+			if (backButton) {
+				e.preventDefault();
+				e.stopPropagation();
+				
+				console.log('=== BACK BUTTON (delegated) ===');
+				console.log('History length:', window.history.length);
+				
+				// Siempre usar history.back() si hay historial
+				// El historial de Astro View Transitions es confiable
+				if (window.history.length > 1) {
+					console.log('ACTION: history.back()');
+					window.history.back();
+				} else {
+					console.log('ACTION: redirect to /');
+					window.location.href = '/';
+				}
+			}
+		});
+		
+		console.log('Back button handler registered (delegated)');
+	}
+</script>
 
 <style>
 	/* Navbar con blur sutil y degradado inferior */

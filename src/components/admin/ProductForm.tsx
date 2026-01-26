@@ -20,11 +20,17 @@ interface ImageState {
     isCompressing: boolean;
 }
 
-export default function ProductForm() {
+interface ProductFormProps {
+    productId?: string;
+}
+
+export default function ProductForm({ productId }: ProductFormProps) {
     const lang = useStore(adminLang);
     const t = adminTranslations[lang];
 
+    const isEditing = !!productId;
     const [loading, setLoading] = useState(false);
+    const [loadingProduct, setLoadingProduct] = useState(isEditing);
     const [nameEs, setNameEs] = useState('');
     const [nameZh, setNameZh] = useState('');
     const [descriptionEs, setDescriptionEs] = useState('');
@@ -32,6 +38,7 @@ export default function ProductForm() {
     const [price, setPrice] = useState('');
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+    const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
     
     // Estado mejorado para imagen con preview y compresión
     const [imageState, setImageState] = useState<ImageState>({
@@ -45,7 +52,45 @@ export default function ProductForm() {
 
     useEffect(() => {
         fetchCategories();
-    }, []);
+        if (productId) {
+            fetchProduct(productId);
+        }
+    }, [productId]);
+
+    const fetchProduct = async (id: string) => {
+        setLoadingProduct(true);
+        const { data, error } = await supabase
+            .from('menu_items')
+            .select(`
+                *,
+                menu_item_categories (
+                    category_id
+                )
+            `)
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            console.error('Error fetching product:', error);
+            alert('Error al cargar el producto');
+            window.location.href = '/admin/dashboard';
+            return;
+        }
+
+        if (data) {
+            setNameEs(data.name_es || '');
+            setNameZh(data.name_zh || '');
+            setDescriptionEs(data.description_es || '');
+            setDescriptionZh(data.description_zh || '');
+            setPrice(data.price?.toString() || '');
+            setExistingImageUrl(data.image_url || null);
+            
+            // Cargar categorías seleccionadas
+            const categoryIds = data.menu_item_categories?.map((mic: { category_id: string }) => mic.category_id) || [];
+            setSelectedCategories(categoryIds);
+        }
+        setLoadingProduct(false);
+    };
 
     const fetchCategories = async () => {
         const { data, error } = await supabase
@@ -131,9 +176,9 @@ export default function ProductForm() {
 
         setLoading(true);
 
-        let imageUrl = null;
+        let imageUrl = existingImageUrl; // Mantener imagen existente por defecto
 
-        // 1. Upload Image (comprimida a WebP)
+        // 1. Upload Image (comprimida a WebP) si hay nueva imagen
         if (imageState.compressedBlob) {
             // Usar siempre extensión .webp para imágenes comprimidas
             const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
@@ -157,56 +202,126 @@ export default function ProductForm() {
                 .getPublicUrl(fileName);
 
             imageUrl = data.publicUrl;
+
+            // Eliminar imagen anterior si existe
+            if (existingImageUrl) {
+                const oldFileName = existingImageUrl.split('/menu-images/')[1];
+                if (oldFileName) {
+                    await supabase.storage.from('menu-images').remove([oldFileName]);
+                }
+            }
         }
 
-        // 2. Insert Product
-        const { data: newProduct, error: insertError } = await supabase
-            .from('menu_items')
-            .insert([{
-                name_es: nameEs,
-                name_zh: nameZh,
-                description_es: descriptionEs || null,
-                description_zh: descriptionZh || null,
-                price: Number(price),
-                image_url: imageUrl,
-                is_available: true
-            }])
-            .select()
-            .single();
+        if (isEditing && productId) {
+            // MODO EDICIÓN: Update Product
+            const { error: updateError } = await supabase
+                .from('menu_items')
+                .update({
+                    name_es: nameEs,
+                    name_zh: nameZh,
+                    description_es: descriptionEs || null,
+                    description_zh: descriptionZh || null,
+                    price: Number(price),
+                    image_url: imageUrl,
+                })
+                .eq('id', productId);
 
-        if (insertError) {
-            alert('Error creating product: ' + insertError.message);
-            setLoading(false);
-            return;
+            if (updateError) {
+                alert('Error updating product: ' + updateError.message);
+                setLoading(false);
+                return;
+            }
+
+            // Actualizar categorías: eliminar las anteriores e insertar las nuevas
+            await supabase
+                .from('menu_item_categories')
+                .delete()
+                .eq('menu_item_id', productId);
+
+            const categoryRelations = selectedCategories.map(categoryId => ({
+                menu_item_id: productId,
+                category_id: categoryId
+            }));
+
+            const { error: relationsError } = await supabase
+                .from('menu_item_categories')
+                .insert(categoryRelations);
+
+            if (relationsError) {
+                alert('Error assigning categories: ' + relationsError.message);
+                setLoading(false);
+                return;
+            }
+
+            alert(t.productUpdated);
+        } else {
+            // MODO CREACIÓN: Insert Product
+            const { data: newProduct, error: insertError } = await supabase
+                .from('menu_items')
+                .insert([{
+                    name_es: nameEs,
+                    name_zh: nameZh,
+                    description_es: descriptionEs || null,
+                    description_zh: descriptionZh || null,
+                    price: Number(price),
+                    image_url: imageUrl,
+                    is_available: true
+                }])
+                .select()
+                .single();
+
+            if (insertError) {
+                alert('Error creating product: ' + insertError.message);
+                setLoading(false);
+                return;
+            }
+
+            // Insert Category Relations
+            const categoryRelations = selectedCategories.map(categoryId => ({
+                menu_item_id: newProduct.id,
+                category_id: categoryId
+            }));
+
+            const { error: relationsError } = await supabase
+                .from('menu_item_categories')
+                .insert(categoryRelations);
+
+            if (relationsError) {
+                alert('Error assigning categories: ' + relationsError.message);
+                setLoading(false);
+                return;
+            }
+
+            alert(t.productCreated);
         }
 
-        // 3. Insert Category Relations
-        const categoryRelations = selectedCategories.map(categoryId => ({
-            menu_item_id: newProduct.id,
-            category_id: categoryId
-        }));
-
-        const { error: relationsError } = await supabase
-            .from('menu_item_categories')
-            .insert(categoryRelations);
-
-        if (relationsError) {
-            alert('Error assigning categories: ' + relationsError.message);
-            setLoading(false);
-            return;
-        }
-
-        alert(t.productCreated);
         window.location.href = '/admin/dashboard';
         setLoading(false);
     };
+
+    if (loadingProduct) {
+        return (
+            <div className="bg-white border border-[#E8C4C4]/30 rounded-2xl shadow-sm max-w-2xl mx-auto overflow-hidden">
+                <div className="flex items-center justify-center py-16">
+                    <div className="flex flex-col items-center gap-3">
+                        <span className="loading loading-spinner loading-lg text-[#B84A4A]"></span>
+                        <p className="text-[#5A5A5C] text-sm">{t.loading}</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white border border-[#E8C4C4]/30 rounded-2xl shadow-sm max-w-2xl mx-auto overflow-hidden">
             {/* Header */}
             <div className="px-6 py-5 border-b border-[#E8C4C4]/20">
-                <h2 className="font-['Playfair_Display'] text-xl font-bold text-[#1C1C1E]">{t.createProduct}</h2>
-                <p className="text-[#5A5A5C] text-sm mt-1">{t.addNewProduct}</p>
+                <h2 className="font-['Playfair_Display'] text-xl font-bold text-[#1C1C1E]">
+                    {isEditing ? t.editProduct : t.createProduct}
+                </h2>
+                <p className="text-[#5A5A5C] text-sm mt-1">
+                    {isEditing ? t.editProductDesc : t.addNewProduct}
+                </p>
             </div>
 
             <div className="p-6">
@@ -348,7 +463,7 @@ export default function ProductForm() {
                             <span className="text-[#5A5A5C]/50 font-normal text-xs">({t.optional})</span>
                         </h3>
                         
-                        {/* Preview de imagen */}
+                        {/* Preview de nueva imagen */}
                         {imageState.preview && (
                             <div className="mb-3 relative">
                                 <div className="relative w-full max-w-xs mx-auto">
@@ -376,31 +491,48 @@ export default function ProductForm() {
                                     </button>
                                 </div>
                                 
-                                {/* Info de compresión */}
-                                <div className="mt-2 text-center">
-                                    {imageState.isCompressing ? (
-                                        <div className="flex items-center justify-center gap-2 text-[#5A5A5C] text-xs">
-                                            <span className="loading loading-spinner loading-xs"></span>
-                                            <span>{lang === 'es' ? 'Optimizando imagen...' : '优化图片中...'}</span>
-                                        </div>
-                                    ) : imageState.compressedSize > 0 && (
-                                        <div className="flex items-center justify-center gap-2 text-xs">
-                                            <span className="text-[#5A5A5C] line-through">{formatFileSize(imageState.originalSize)}</span>
-                                            <svg className="w-3 h-3 text-[#4A8A2C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                            </svg>
-                                            <span className="text-[#4A8A2C] font-medium">{formatFileSize(imageState.compressedSize)}</span>
-                                            <span className="px-1.5 py-0.5 bg-[#4A8A2C]/10 text-[#4A8A2C] rounded text-xs font-medium">
-                                                WebP -{Math.round((1 - imageState.compressedSize / imageState.originalSize) * 100)}%
-                                            </span>
-                                        </div>
-                                    )}
+                                {/* Indicador de compresión en proceso */}
+                                {imageState.isCompressing && (
+                                    <div className="mt-2 flex items-center justify-center gap-2 text-[#5A5A5C] text-xs">
+                                        <span className="loading loading-spinner loading-xs"></span>
+                                        <span>{lang === 'es' ? 'Optimizando imagen...' : '优化图片中...'}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Imagen existente (solo en modo edición) */}
+                        {!imageState.preview && existingImageUrl && (
+                            <div className="mb-3">
+                                <div className="relative w-full max-w-xs mx-auto">
+                                    <img 
+                                        src={existingImageUrl} 
+                                        alt="Imagen actual" 
+                                        className="w-full aspect-square object-cover rounded-xl border border-[#E8C4C4]/30"
+                                    />
+                                    <div className="absolute bottom-2 left-2 right-2 flex gap-2">
+                                        <span className="px-2 py-1 bg-black/50 text-white text-xs rounded-lg">
+                                            {t.keepCurrentImage}
+                                        </span>
+                                    </div>
                                 </div>
+                                <label className="mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-[#F7F7F2] border border-[#E8C4C4]/30 rounded-xl cursor-pointer hover:border-[#B84A4A]/50 transition-colors text-sm">
+                                    <input 
+                                        type="file" 
+                                        className="sr-only" 
+                                        accept="image/*" 
+                                        onChange={handleFileChange} 
+                                    />
+                                    <svg className="w-4 h-4 text-[#5A5A5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span className="text-[#5A5A5C]">{t.changeImage}</span>
+                                </label>
                             </div>
                         )}
                         
-                        {/* Input de archivo */}
-                        {!imageState.preview && (
+                        {/* Input de archivo (cuando no hay imagen) */}
+                        {!imageState.preview && !existingImageUrl && (
                             <label className="flex items-center justify-center gap-3 px-4 py-6 bg-[#F7F7F2] border-2 border-dashed border-[#E8C4C4]/50 rounded-xl cursor-pointer hover:border-[#B84A4A]/50 transition-colors">
                                 <input 
                                     type="file" 
@@ -433,7 +565,7 @@ export default function ProductForm() {
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
-                                    <span>{t.save}</span>
+                                    <span>{isEditing ? t.updateProduct : t.save}</span>
                                 </>
                             )}
                         </button>

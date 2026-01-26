@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import { ViewTransitions } from "astro:transitions";
 ---
 
 <!doctype html>
@@ -19,9 +20,27 @@ import "../styles/global.css";
 			href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Noto+Serif+SC:wght@400;500&family=Noto+Serif+JP:wght@400;500&family=Inter:wght@300;400;500;600&display=swap"
 			rel="stylesheet"
 		/>
+
+		<!-- View Transitions para mantener el scroll al navegar -->
+		<ViewTransitions />
 	</head>
 	<body>
 		<slot />
+		
+		<script>
+			// Debug: Log simplificado de navegación
+			if (!window.__layoutDebugRegistered) {
+				window.__layoutDebugRegistered = true;
+				
+				document.addEventListener('astro:page-load', () => {
+					console.log('📍 Page loaded:', window.location.pathname, 'scroll:', window.scrollY);
+				});
+
+				window.addEventListener('popstate', (e) => {
+					console.log('🔙 Popstate:', window.location.pathname, 'state:', e.state);
+				});
+			}
+		</script>
 	</body>
 </html>
 

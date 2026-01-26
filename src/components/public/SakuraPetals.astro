@@ -10,6 +10,10 @@
 <script>
     import { gsap } from "gsap";
 
+    // Desactivar "catch-up" de GSAP para evitar saltos en móviles durante scroll
+    // Esto evita que GSAP intente recuperar el tiempo perdido cuando rAF se pausa
+    gsap.ticker.lagSmoothing(0, 0);
+
     const initSakuraPetals = () => {
         const container = document.getElementById('sakura-container');
         if (!container) return;

@@ -1,10 +1,21 @@
 import { useStore } from '@nanostores/react';
+import { useEffect, useState } from 'react';
 import { adminLang, adminTranslations } from '../../stores/i18nStore';
 import ProductForm from './ProductForm';
 
 export default function CreateProductPage() {
     const lang = useStore(adminLang);
     const t = adminTranslations[lang];
+    const [productId, setProductId] = useState<string | undefined>(undefined);
+
+    useEffect(() => {
+        // Leer el parámetro 'edit' de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const editId = urlParams.get('edit');
+        if (editId) {
+            setProductId(editId);
+        }
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -19,7 +30,7 @@ export default function CreateProductPage() {
                 {t.backToPanel}
             </a>
             
-            <ProductForm />
+            <ProductForm productId={productId} />
         </div>
     );
 }

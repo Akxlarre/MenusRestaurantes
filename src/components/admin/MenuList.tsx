@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useStore } from '@nanostores/react';
 import { adminLang, adminTranslations } from '../../stores/i18nStore';
@@ -22,15 +22,91 @@ interface MenuItem {
     }[];
 }
 
+type SortOption = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc';
+type StatusFilter = 'all' | 'available' | 'unavailable';
+
 export default function MenuList() {
     const [items, setItems] = useState<MenuItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [categories, setCategories] = useState<Category[]>([]);
     const lang = useStore(adminLang);
     const t = adminTranslations[lang];
 
+    // Estados de filtro, búsqueda y ordenamiento
+    const [searchQuery, setSearchQuery] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState<string>('all');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [sortOption, setSortOption] = useState<SortOption>('name_asc');
+
     useEffect(() => {
         fetchItems();
+        fetchCategories();
     }, []);
+
+    const fetchCategories = async () => {
+        const { data, error } = await supabase
+            .from('categories')
+            .select('*')
+            .order('display_order', { ascending: true });
+
+        if (!error && data) {
+            setCategories(data);
+        }
+    };
+
+    // Filtrar y ordenar items
+    const filteredItems = useMemo(() => {
+        let result = [...items];
+
+        // Búsqueda por nombre
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            result = result.filter(item => 
+                item.name_es.toLowerCase().includes(query) ||
+                item.name_zh.includes(query)
+            );
+        }
+
+        // Filtro por categoría
+        if (categoryFilter !== 'all') {
+            result = result.filter(item =>
+                item.menu_item_categories?.some(mic => mic.categories.id === categoryFilter)
+            );
+        }
+
+        // Filtro por disponibilidad
+        if (statusFilter === 'available') {
+            result = result.filter(item => item.is_available);
+        } else if (statusFilter === 'unavailable') {
+            result = result.filter(item => !item.is_available);
+        }
+
+        // Ordenamiento
+        result.sort((a, b) => {
+            switch (sortOption) {
+                case 'name_asc':
+                    return (lang === 'zh' ? a.name_zh : a.name_es).localeCompare(lang === 'zh' ? b.name_zh : b.name_es);
+                case 'name_desc':
+                    return (lang === 'zh' ? b.name_zh : b.name_es).localeCompare(lang === 'zh' ? a.name_zh : a.name_es);
+                case 'price_asc':
+                    return a.price - b.price;
+                case 'price_desc':
+                    return b.price - a.price;
+                default:
+                    return 0;
+            }
+        });
+
+        return result;
+    }, [items, searchQuery, categoryFilter, statusFilter, sortOption, lang]);
+
+    const hasActiveFilters = searchQuery || categoryFilter !== 'all' || statusFilter !== 'all';
+
+    const clearFilters = () => {
+        setSearchQuery('');
+        setCategoryFilter('all');
+        setStatusFilter('all');
+    };
 
     const fetchItems = async () => {
         setLoading(true);
@@ -169,8 +245,110 @@ export default function MenuList() {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((item) => (
+        <div className="space-y-4">
+            {/* Barra de búsqueda y filtros */}
+            <div className="bg-white border border-[#E8C4C4]/30 rounded-xl p-4 space-y-3">
+                {/* Fila 1: Búsqueda */}
+                <div className="relative">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A5A5C]/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                        type="text"
+                        placeholder={t.searchProducts}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-[#F7F7F2] border border-[#E8C4C4]/30 rounded-xl text-[#1C1C1E] placeholder-[#5A5A5C]/50 focus:outline-none focus:ring-2 focus:ring-[#B84A4A]/30 focus:border-[#B84A4A]/50 transition-all"
+                    />
+                    {searchQuery && (
+                        <button
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#5A5A5C]/20 flex items-center justify-center hover:bg-[#5A5A5C]/30 transition-colors"
+                        >
+                            <svg className="w-3 h-3 text-[#5A5A5C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
+
+                {/* Fila 2: Filtros y ordenamiento */}
+                <div className="flex flex-wrap gap-2">
+                    {/* Filtro por categoría */}
+                    <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="px-3 py-2 bg-[#F7F7F2] border border-[#E8C4C4]/30 rounded-lg text-sm text-[#1C1C1E] focus:outline-none focus:ring-2 focus:ring-[#B84A4A]/30 cursor-pointer min-w-[140px]"
+                    >
+                        <option value="all">{t.allCategories}</option>
+                        {categories.map(cat => (
+                            <option key={cat.id} value={cat.id}>
+                                {lang === 'zh' ? cat.name_zh : cat.name_es}
+                            </option>
+                        ))}
+                    </select>
+
+                    {/* Filtro por disponibilidad */}
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                        className="px-3 py-2 bg-[#F7F7F2] border border-[#E8C4C4]/30 rounded-lg text-sm text-[#1C1C1E] focus:outline-none focus:ring-2 focus:ring-[#B84A4A]/30 cursor-pointer min-w-[120px]"
+                    >
+                        <option value="all">{t.allStatus}</option>
+                        <option value="available">{t.availableOnly}</option>
+                        <option value="unavailable">{t.unavailableOnly}</option>
+                    </select>
+
+                    {/* Ordenamiento */}
+                    <select
+                        value={sortOption}
+                        onChange={(e) => setSortOption(e.target.value as SortOption)}
+                        className="px-3 py-2 bg-[#F7F7F2] border border-[#E8C4C4]/30 rounded-lg text-sm text-[#1C1C1E] focus:outline-none focus:ring-2 focus:ring-[#B84A4A]/30 cursor-pointer min-w-[140px]"
+                    >
+                        <option value="name_asc">{t.sortNameAsc}</option>
+                        <option value="name_desc">{t.sortNameDesc}</option>
+                        <option value="price_asc">{t.sortPriceAsc}</option>
+                        <option value="price_desc">{t.sortPriceDesc}</option>
+                    </select>
+
+                    {/* Botón limpiar filtros */}
+                    {hasActiveFilters && (
+                        <button
+                            onClick={clearFilters}
+                            className="px-3 py-2 text-sm text-[#B84A4A] hover:bg-[#B84A4A]/10 rounded-lg transition-colors flex items-center gap-1.5"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            {t.clearFilters}
+                        </button>
+                    )}
+
+                    {/* Contador de resultados */}
+                    <div className="ml-auto flex items-center text-sm text-[#5A5A5C]">
+                        <span className="font-medium text-[#1C1C1E]">{filteredItems.length}</span>
+                        <span className="ml-1">{t.resultsCount}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Lista de productos o mensaje de no resultados */}
+            {filteredItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center bg-white border border-[#E8C4C4]/30 rounded-xl">
+                    <svg className="w-12 h-12 text-[#5A5A5C]/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <p className="text-[#5A5A5C] mb-3">{t.noResults}</p>
+                    <button
+                        onClick={clearFilters}
+                        className="px-4 py-2 text-sm text-[#B84A4A] hover:bg-[#B84A4A]/10 rounded-lg transition-colors"
+                    >
+                        {t.clearFilters}
+                    </button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredItems.map((item) => (
                 <div 
                     key={item.id} 
                     className={`group bg-white border border-[#E8C4C4]/30 rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:border-[#E8C4C4]/50 ${!item.is_available ? 'opacity-60' : ''}`}
@@ -188,10 +366,19 @@ export default function MenuList() {
                         
                         {/* Controles */}
                         <div className="flex items-center gap-2">
+                            <a
+                                href={`/admin/create?edit=${item.id}`}
+                                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#5A5A5C]/50 hover:text-[#B84A4A] hover:bg-[#B84A4A]/10 transition-colors"
+                                title={t.edit}
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </a>
                             <button
                                 className="w-7 h-7 rounded-lg flex items-center justify-center text-[#5A5A5C]/50 hover:text-[#B84A4A] hover:bg-[#B84A4A]/10 transition-colors"
                                 onClick={() => deleteProduct(item.id, item.image_url)}
-                                title="Eliminar producto"
+                                title={t.delete}
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -239,6 +426,8 @@ export default function MenuList() {
                     </div>
                 </div>
             ))}
+                </div>
+            )}
         </div>
     );
 }
