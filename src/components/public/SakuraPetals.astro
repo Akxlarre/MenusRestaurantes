@@ -3,7 +3,7 @@
 // Se posiciona fixed para cubrir toda la viewport
 ---
 
-<div id="sakura-container" class="fixed inset-0 pointer-events-none z-[5] overflow-hidden">
+<div id="sakura-container" class="fixed inset-0 pointer-events-none z-[5] overflow-hidden sakura-layer">
     <!-- Los pétalos se generan dinámicamente con JavaScript -->
 </div>
 
@@ -11,8 +11,21 @@
     import { gsap } from "gsap";
 
     // Desactivar "catch-up" de GSAP para evitar saltos en móviles durante scroll
-    // Esto evita que GSAP intente recuperar el tiempo perdido cuando rAF se pausa
     gsap.ticker.lagSmoothing(0, 0);
+
+    // Despertar el ticker cuando termina el scroll táctil (para móviles)
+    let scrollTimeout: number;
+    const handleScrollEnd = () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = window.setTimeout(() => {
+            // Forzar que GSAP siga animando después del scroll
+            gsap.ticker.wake();
+        }, 100);
+    };
+    
+    // Escuchar eventos de scroll y touch
+    window.addEventListener('scroll', handleScrollEnd, { passive: true });
+    window.addEventListener('touchend', () => gsap.ticker.wake(), { passive: true });
 
     const initSakuraPetals = () => {
         const container = document.getElementById('sakura-container');
@@ -150,9 +163,19 @@
 </script>
 
 <style>
+    /* Forzar capa de composición aislada para evitar interferencia con scroll */
+    .sakura-layer {
+        transform: translateZ(0);
+        contain: layout style;
+        isolation: isolate;
+        backface-visibility: hidden;
+    }
+
     .sakura-petal {
         filter: drop-shadow(0 2px 3px rgba(255, 150, 170, 0.25));
-        will-change: transform;
+        will-change: transform, opacity;
+        transform: translateZ(0);
+        backface-visibility: hidden;
     }
 
     .sakura-petal svg {

@@ -81,13 +81,12 @@ const { id, name_es, name_zh, price, is_available } = Astro.props;
         
         // Guardar scroll al hacer clic en un producto
         document.addEventListener('click', (e) => {
-            const card = e.target.closest('.menu-item-card');
+            const card = (e.target as HTMLElement).closest('.menu-item-card');
             if (card) {
                 const scrollPos = window.scrollY;
-                console.log('=== MENU CARD CLICKED ===');
-                console.log('Product ID:', card.getAttribute('data-product-id'));
-                console.log('Scroll saved:', scrollPos);
                 sessionStorage.setItem('menuScrollPosition', scrollPos.toString());
+                // Marcar que navegamos a un detalle
+                sessionStorage.setItem('navigatedToDetail', 'true');
             }
         });
 
@@ -95,22 +94,23 @@ const { id, name_es, name_zh, price, is_available } = Astro.props;
         document.addEventListener('astro:page-load', () => {
             if (window.location.pathname === '/') {
                 const savedScroll = sessionStorage.getItem('menuScrollPosition');
-                console.log('=== MENU PAGE LOADED ===');
-                console.log('Saved scroll:', savedScroll);
+                const navigatedToDetail = sessionStorage.getItem('navigatedToDetail');
                 
-                if (savedScroll) {
+                // Solo restaurar si venimos de un detalle de producto
+                if (savedScroll && navigatedToDetail === 'true') {
+                    // Limpiar inmediatamente para evitar restauraciones futuras
+                    sessionStorage.removeItem('menuScrollPosition');
+                    sessionStorage.removeItem('navigatedToDetail');
+                    
                     // Usar requestAnimationFrame para esperar al render
                     requestAnimationFrame(() => {
                         requestAnimationFrame(() => {
                             window.scrollTo(0, parseInt(savedScroll));
-                            console.log('Scroll restored to:', window.scrollY);
                         });
                     });
                 }
             }
         });
-        
-        console.log('MenuCard handler registered (delegated)');
     }
 </script>
 
