@@ -88,7 +88,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                     </svg>
                                 </div>
-                                <ul tabIndex={0} className="menu dropdown-content mt-2 z-[1] p-2 bg-white border border-[#E8C4C4]/30 rounded-xl shadow-lg w-48">
+                                <ul tabIndex={0} className="menu dropdown-content mt-2 z-[1] p-2 bg-white border border-[#E8C4C4]/30 rounded-xl shadow-lg w-52">
+                                    <li>
+                                        <a 
+                                            href="https://wa.me/56933197338?text=Necesito%20soporte%20para%20Menu%20Mini%20wok"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 text-[#5A5A5C] hover:bg-[#F7F7F2] hover:text-[#1C1C1E]"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                            </svg>
+                                            {t.support}
+                                        </a>
+                                    </li>
+                                    <li className="my-1">
+                                        <div className="h-px bg-[#E8C4C4]/30"></div>
+                                    </li>
                                     <li>
                                         <button 
                                             onClick={handleLogout}

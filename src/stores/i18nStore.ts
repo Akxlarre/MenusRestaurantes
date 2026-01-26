@@ -36,6 +36,7 @@ export const adminTranslations = {
         categories: 'Categorías',
         logout: 'Cerrar Sesión',
         backToPanel: 'Volver al panel',
+        support: 'Contactar soporte',
         
         // Dashboard
         manageMenu: 'Gestiona tu menú y productos',
@@ -134,6 +135,7 @@ export const adminTranslations = {
         categories: '类别',
         logout: '退出登录',
         backToPanel: '返回面板',
+        support: '联系支持',
         
         // Dashboard
         manageMenu: '管理您的菜单和产品',
