@@ -1,0 +1,171 @@
+---
+// AION Loyalty - Tap Verification Loading Page
+// Shows loading animation while Edge Function validates the tap
+// Displays error messages if validation fails
+
+const { status, reason } = Astro.url.searchParams;
+
+const isError = status === 'error';
+const errorMessages: Record<string, string> = {
+  device_not_found: 'Dispositivo no encontrado. Por favor contacta al personal.',
+  invalid_signature: 'Código de seguridad inválido. Por favor intenta nuevamente.',
+  replay_attack: '⚠️ Este código ya fue usado. Cada tap es único.',
+  rate_limit: 'Por favor espera 60 segundos antes de volver a escanear.',
+  award_failed: 'Error al otorgar puntos. Por favor intenta nuevamente.',
+};
+
+const errorMessage = reason ? errorMessages[reason] || 'Error desconocido' : '';
+---
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Validando tu punto...</title>
+  <style>
+    :root {
+      --color-matcha: #87A96B;
+      --color-matcha-dark: #6B8A54;
+      --color-sumi-ink: #2C2C2C;
+      --color-blanco-papel: #FEFDF8;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, var(--color-blanco-papel) 0%, #f5f3ed 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+
+    .spinner {
+      width: 80px;
+      height: 80px;
+      border: 6px solid rgba(135, 169, 107, 0.2);
+      border-top-color: var(--color-matcha);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 2rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      color: var(--color-sumi-ink);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    p {
+      font-size: 1rem;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .error-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 2rem;
+      background: #fef2f2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+    }
+
+    .error-message {
+      background: #fef2f2;
+      border: 2px solid #fca5a5;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      color: #991b1b;
+    }
+
+    .retry-button {
+      margin-top: 1.5rem;
+      padding: 0.75rem 2rem;
+      background: var(--color-matcha);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .retry-button:hover {
+      background: var(--color-matcha-dark);
+    }
+
+    .fade-in {
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container fade-in">
+    {isError ? (
+      <>
+        <div class="error-icon">⚠️</div>
+        <h1>No se pudo validar</h1>
+        <p>Hubo un problema al procesar tu punto.</p>
+        <div class="error-message">
+          {errorMessage}
+        </div>
+        <button class="retry-button" onclick="window.location.href='/'">
+          Volver al inicio
+        </button>
+      </>
+    ) : (
+      <>
+        <div class="spinner"></div>
+        <h1>Validando tu punto...</h1>
+        <p>Verificando tu tap con seguridad bancaria 🔐</p>
+      </>
+    )}
+  </div>
+
+  {!isError && (
+    <script>
+      // If no error, this should redirect quickly from the Edge Function
+      // But if we're still here after 5 seconds, show timeout message
+      setTimeout(() => {
+        if (window.location.href.includes('verify-tap')) {
+          window.location.href = '/verify-tap?status=error&reason=timeout';
+        }
+      }, 5000);
+    </script>
+  )}
+</body>
+</html>

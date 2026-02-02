@@ -147,32 +147,24 @@ const displayCategories =
 			const originalMenuParent = mobileMenu.parentElement;
 			let menuScrollPosition = 0;
 
-			// Calcular ancho del scrollbar
-			const getScrollbarWidth = () => {
-				return window.innerWidth - document.documentElement.clientWidth;
-			};
-
+			// Con scrollbar-gutter: stable (global.css) el hueco del scrollbar ya está reservado;
+			// no añadimos paddingRight al abrir el menú para evitar doble compensación y desplazamiento.
 			const lockMenuScroll = () => {
 				menuScrollPosition = window.scrollY;
-				const scrollbarWidth = getScrollbarWidth();
-				
 				document.body.style.position = "fixed";
 				document.body.style.top = `-${menuScrollPosition}px`;
 				document.body.style.left = "0";
 				document.body.style.right = "0";
 				document.body.style.overflow = "hidden";
-				document.body.style.paddingRight = `${scrollbarWidth}px`;
 			};
 
 			const unlockMenuScroll = (scrollTarget: number | null = null) => {
 				const targetY = scrollTarget !== null ? scrollTarget : menuScrollPosition;
-				
 				document.body.style.position = "";
 				document.body.style.top = "";
 				document.body.style.left = "";
 				document.body.style.right = "";
 				document.body.style.overflow = "";
-				document.body.style.paddingRight = "";
 				
 				// Ir inmediatamente a la posición target (forzar instant)
 				window.scrollTo({

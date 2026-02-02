@@ -1,0 +1,417 @@
+---
+import { supabase } from "../../lib/supabase";
+
+// Fetch user's loyalty balance (if authenticated)
+let currentStamps = 0;
+let lifetimeStamps = 0;
+let isAuthenticated = false;
+
+try {
+	const authHeader = Astro.request.headers.get("cookie");
+	if (authHeader) {
+		// In production, properly extract session from cookie
+		// For now, this is a placeholder - you'll need proper session handling
+		const {
+			data: { session },
+		} = await supabase.auth.getSession();
+		if (session?.user) {
+			isAuthenticated = true;
+			const { data: balance } = await supabase
+				.from("user_loyalty_balance")
+				.select("current_stamps, lifetime_stamps")
+				.eq("user_id", session.user.id)
+				.single();
+
+			if (balance) {
+				currentStamps = balance.current_stamps || 0;
+				lifetimeStamps = balance.lifetime_stamps || 0;
+			}
+		}
+	}
+} catch (error) {
+	console.error("[FloatingLoyaltyButton] Failed to fetch balance:", error);
+}
+
+// Botón flotante expansible para la tarjeta de fidelización.
+// Usa GSAP para animar la expansión y el contenido.
+// Incluye tooltip al hover, mensaje única vez y datos en vivo desde Supabase.
+---
+
+<div
+	id="floating-loyalty-root"
+	class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-0"
+>
+	<!-- Panel expandible (contenido) -->
+	<div
+		id="loyalty-panel"
+		class="overflow-hidden rounded-2xl shadow-card-hover mb-3"
+		style="
+			background: var(--color-blanco-papel);
+			border: 1px solid var(--color-matcha-light);
+			width: 320px;
+			height: 0;
+			opacity: 0;
+		"
+		aria-hidden="true"
+	>
+		<div id="loyalty-panel-inner" class="p-5">
+			<div
+				class="loyalty-content-block text-sm leading-relaxed"
+				style="color: var(--color-sumi-ink);"
+			>
+				<p
+					class="font-medium mb-2"
+					style="color: var(--color-matcha-dark);"
+				>
+					Tu progreso
+				</p>
+				{
+					isAuthenticated ? (
+						<div>
+							<p
+								class="text-2xl font-bold mb-1"
+								style="color: var(--color-matcha);"
+							>
+								{currentStamps} / 10 ⭐
+							</p>
+							<p class="text-sm">
+								{currentStamps >= 10
+									? "¡Tienes una recompensa disponible! 🎉"
+									: `Te faltan ${10 - currentStamps} puntos para tu próxima recompensa.`}
+							</p>
+							<p class="text-xs mt-2" style="color: #999;">
+								Total acumulado: {lifetimeStamps} puntos
+							</p>
+						</div>
+					) : (
+						<p>
+							Acumula puntos en cada visita y canjéalos por
+							recompensas exclusivas.
+							<a
+								href="/auth/login"
+								class="font-medium"
+								style="color: var(--color-matcha-dark);"
+							>
+								Inicia sesión
+							</a>{" "}
+							para ver tu progreso.
+						</p>
+					)
+				}
+			</div>
+			<div
+				class="loyalty-content-block text-sm leading-relaxed mt-4 pt-4 border-t"
+				style="color: var(--color-sumi-ink); border-color: var(--color-matcha-light);"
+			>
+				<p
+					class="font-medium mb-2"
+					style="color: var(--color-matcha-dark);"
+				>
+					¿Cómo funciona?
+				</p>
+				<p>
+					Pide al garzón que acerque su tarjeta AION a tu celular al
+					finalizar tu pedido. Cada visita suma 1 punto. ¡Junta 10 y
+					recibe un Wantan gratis!
+				</p>
+				<a
+					href="/puntos"
+					class="inline-block mt-3 px-4 py-2 rounded-lg font-medium text-white transition-colors"
+					style="background: var(--color-matcha);"
+				>
+					Ver mis recompensas →
+				</a>
+			</div>
+		</div>
+	</div>
+
+	<!-- Contenedor del botón + tooltips -->
+	<div id="loyalty-trigger-wrap" class="relative">
+		<!-- Tooltip al hover -->
+		<div
+			id="loyalty-tooltip"
+			class="loyalty-tooltip absolute right-full bottom-1/2 translate-y-1/2 mr-3 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap pointer-events-none opacity-0 transition-opacity duration-200"
+			style="background: var(--color-blanco-papel); color: var(--color-sumi-ink); box-shadow: var(--shadow-card-hover); border: 1px solid var(--color-matcha-light);"
+			role="tooltip"
+		>
+			Acumula puntos con cada pedido
+		</div>
+		<!-- Mensaje única vez (primera visita): mismo texto que hover, en una sola fila con X al final -->
+		<div
+			id="loyalty-first-msg"
+			class="loyalty-first-msg absolute right-full bottom-1/2 translate-y-1/2 mr-3 flex items-center gap-2 rounded-xl px-3 py-2 whitespace-nowrap hidden"
+			style="background: var(--color-blanco-papel); box-shadow: var(--shadow-card-hover); border: 1px solid var(--color-matcha-light);"
+			aria-live="polite"
+		>
+			<span
+				class="text-sm font-medium"
+				style="color: var(--color-sumi-ink);"
+				>Acumula puntos con cada pedido</span
+			>
+			<button
+				type="button"
+				id="loyalty-first-msg-close"
+				class="w-5 h-5 flex items-center justify-center rounded-full hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-matcha-dark"
+				style="color: var(--color-matcha-text);"
+				aria-label="Cerrar"
+			>
+				<svg
+					class="w-3 h-3"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M6 18L18 6M6 6l12 12"></path>
+				</svg>
+			</button>
+		</div>
+		<!-- Botón principal (trigger) -->
+		<button
+			id="loyalty-trigger"
+			type="button"
+			class="flex items-center justify-center w-14 h-14 rounded-full shadow-card-hover transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-matcha-dark focus:ring-offset-2"
+			style="background: var(--color-matcha); color: var(--color-matcha-text);"
+			aria-expanded="false"
+			aria-controls="loyalty-panel"
+			aria-label="Abrir tarjeta de fidelización"
+		>
+			<svg
+				id="loyalty-icon-card"
+				class="w-6 h-6"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.8"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<rect x="4" y="7" width="12" height="9" rx="2" ry="2"></rect>
+				<path d="M7 10h6"></path>
+				<path d="M7 12.5h3"></path>
+				<path d="M17 9.5c1.2 0.4 2 1.5 2 2.5s-0.8 2.1-2 2.5"></path>
+				<path d="M18.5 8c1.6 0.6 2.7 2 2.7 4s-1.1 3.4-2.7 4"></path>
+			</svg>
+			<svg
+				id="loyalty-icon-close"
+				class="w-6 h-6 hidden"
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M6 18L18 6M6 6l12 12"></path>
+			</svg>
+		</button>
+	</div>
+</div>
+
+<script>
+	import gsap from "gsap";
+
+	const PANEL_ID = "loyalty-panel";
+	const PANEL_INNER_ID = "loyalty-panel-inner";
+	const TRIGGER_ID = "loyalty-trigger";
+	const ICON_CARD_ID = "loyalty-icon-card";
+	const ICON_CLOSE_ID = "loyalty-icon-close";
+	const TOOLTIP_ID = "loyalty-tooltip";
+	const FIRST_MSG_ID = "loyalty-first-msg";
+	const FIRST_MSG_CLOSE_ID = "loyalty-first-msg-close";
+	const STORAGE_KEY = "loyalty-first-seen";
+	const TOOLTIP_DELAY_MS = 400;
+
+	const PANEL_HEIGHT = 280; // altura aproximada del contenido
+
+	function initFloatingLoyalty() {
+		const panel = document.getElementById(PANEL_ID);
+		const panelInner = document.getElementById(PANEL_INNER_ID);
+		const trigger = document.getElementById(TRIGGER_ID);
+		const iconCard = document.getElementById(ICON_CARD_ID);
+		const iconClose = document.getElementById(ICON_CLOSE_ID);
+		const tooltip = document.getElementById(TOOLTIP_ID);
+		const firstMsg = document.getElementById(FIRST_MSG_ID);
+		const firstMsgClose = document.getElementById(FIRST_MSG_CLOSE_ID);
+		if (!panel || !panelInner || !trigger || !iconCard || !iconClose) {
+			console.warn(
+				"[FloatingLoyalty] init: faltan elementos requeridos",
+				{
+					panel: !!panel,
+					panelInner: !!panelInner,
+					trigger: !!trigger,
+					iconCard: !!iconCard,
+					iconClose: !!iconClose,
+				},
+			);
+			return;
+		}
+
+		const panelEl = panel;
+		const panelInnerEl = panelInner;
+		const contentBlocks = Array.from(
+			panelInnerEl.querySelectorAll(".loyalty-content-block"),
+		);
+		const triggerBtn = trigger;
+		const iconCardEl = iconCard;
+		const iconCloseEl = iconClose;
+		let expanded = false;
+		console.log("[FloatingLoyalty] init ok", {
+			tooltip: !!tooltip,
+			firstMsg: !!firstMsg,
+			firstMsgClose: !!firstMsgClose,
+			contentBlocks: contentBlocks.length,
+		});
+
+		// Animación de apertura
+		function open() {
+			if (firstMsg && !firstMsg.classList.contains("hidden"))
+				dismissFirstMsg();
+			expanded = true;
+			panelEl.setAttribute("aria-hidden", "false");
+			triggerBtn.setAttribute("aria-expanded", "true");
+			triggerBtn.setAttribute(
+				"aria-label",
+				"Cerrar tarjeta de fidelización",
+			);
+
+			gsap.to(panelEl, {
+				height: PANEL_HEIGHT,
+				opacity: 1,
+				duration: 0.35,
+				ease: "power2.out",
+				overflow: "hidden",
+			});
+
+			gsap.fromTo(
+				contentBlocks,
+				{ opacity: 0, y: 12 },
+				{
+					opacity: 1,
+					y: 0,
+					duration: 0.3,
+					delay: 0.1,
+					stagger: 0.08,
+					ease: "power2.out",
+				},
+			);
+
+			iconCardEl.classList.add("hidden");
+			iconCloseEl.classList.remove("hidden");
+		}
+
+		// Animación de cierre
+		function close() {
+			expanded = false;
+			panelEl.setAttribute("aria-hidden", "true");
+			triggerBtn.setAttribute("aria-expanded", "false");
+			triggerBtn.setAttribute(
+				"aria-label",
+				"Abrir tarjeta de fidelización",
+			);
+
+			gsap.to(contentBlocks, {
+				opacity: 0,
+				y: -8,
+				duration: 0.2,
+				stagger: 0.04,
+				ease: "power2.in",
+			});
+
+			gsap.to(panelEl, {
+				height: 0,
+				opacity: 0,
+				duration: 0.3,
+				delay: 0.1,
+				ease: "power2.in",
+				onComplete: () => {
+					gsap.set(panelEl, { overflow: "hidden" });
+				},
+			});
+
+			iconCloseEl.classList.add("hidden");
+			iconCardEl.classList.remove("hidden");
+		}
+
+		function toggle() {
+			hideTooltip();
+			if (expanded) close();
+			else open();
+		}
+
+		triggerBtn.addEventListener("click", toggle);
+
+		// --- Tooltip al hover ---
+		let tooltipTimeout: ReturnType<typeof setTimeout> | null = null;
+		const showTooltip = () => {
+			tooltipTimeout = setTimeout(() => {
+				tooltip?.classList.remove("opacity-0");
+			}, TOOLTIP_DELAY_MS);
+		};
+		const hideTooltip = () => {
+			if (tooltipTimeout) clearTimeout(tooltipTimeout);
+			tooltipTimeout = null;
+			tooltip?.classList.add("opacity-0");
+		};
+		triggerBtn.addEventListener("mouseenter", showTooltip);
+		triggerBtn.addEventListener("mouseleave", hideTooltip);
+		triggerBtn.addEventListener("focus", showTooltip);
+		triggerBtn.addEventListener("blur", hideTooltip);
+
+		// --- Mensaje única vez (primera visita) ---
+		function dismissFirstMsg() {
+			if (!firstMsg) return;
+			try {
+				localStorage.setItem(STORAGE_KEY, "1");
+			} catch (_) {}
+			gsap.to(firstMsg, {
+				opacity: 0,
+				duration: 0.2,
+				ease: "power2.in",
+				onComplete: () => {
+					firstMsg.classList.add("hidden");
+				},
+			});
+		}
+
+		if (firstMsgClose)
+			firstMsgClose.addEventListener("click", dismissFirstMsg);
+
+		const hasSeenFirst = (() => {
+			try {
+				return !!localStorage.getItem(STORAGE_KEY);
+			} catch {
+				return true;
+			}
+		})();
+
+		if (!hasSeenFirst && firstMsg) {
+			gsap.set(firstMsg, { opacity: 0, x: 8 });
+			firstMsg.classList.remove("hidden");
+			gsap.to(firstMsg, {
+				opacity: 1,
+				x: 0,
+				duration: 0.3,
+				delay: 0.6,
+				ease: "power2.out",
+			});
+		} else if (firstMsg) {
+			firstMsg.classList.add("hidden");
+		}
+	}
+
+	// Ejecutar al cargar (compatible con View Transitions)
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", initFloatingLoyalty);
+	} else {
+		initFloatingLoyalty();
+	}
+	document.addEventListener("astro:page-load", initFloatingLoyalty);
+	// Nada que exportar al frontmatter; este script es puramente de cliente.
+</script>

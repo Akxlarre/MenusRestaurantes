@@ -1,6 +1,7 @@
 ---
 import "../styles/global.css";
 import { ViewTransitions } from "astro:transitions";
+import FloatingLoyaltyButton from "../components/public/FloatingLoyaltyButton.astro";
 ---
 
 <!doctype html>
@@ -26,6 +27,7 @@ import { ViewTransitions } from "astro:transitions";
 	</head>
 	<body>
 		<slot />
+		<FloatingLoyaltyButton />
 		
 		<script>
 			// Debug: Log simplificado de navegación

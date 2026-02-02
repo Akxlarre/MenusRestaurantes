@@ -5,6 +5,11 @@
 
 /* Zen Moderno Design System */
 
+/* Reservar espacio del scrollbar: navbar, botón flotante y contenido estables */
+html {
+	scrollbar-gutter: stable;
+}
+
 /* Animación de shake para errores */
 @keyframes shake {
     0%, 100% { transform: translateX(0); }

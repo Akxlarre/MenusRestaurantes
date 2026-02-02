@@ -1,0 +1,155 @@
+---
+// AION Loyalty - Stamp Card Component
+// Visual representation of loyalty progress with animated stamps
+
+interface Props {
+    currentStamps: number;
+    requiredStamps?: number;
+    size?: "sm" | "md" | "lg";
+}
+
+const { currentStamps, requiredStamps = 10, size = "md" } = Astro.props;
+
+const stamps = Array.from({ length: requiredStamps }, (_, i) => ({
+    index: i,
+    filled: i < currentStamps,
+}));
+
+const sizeClasses = {
+    sm: "w-8 h-10",
+    md: "w-12 h-14",
+    lg: "w-16 h-20",
+};
+---
+
+<div class="stamp-card" data-size={size}>
+    <div class="stamps-grid">
+        {
+            stamps.map((stamp) => (
+                <div
+                    class={`stamp ${stamp.filled ? "filled" : "empty"}`}
+                    data-index={stamp.index}
+                >
+                    {stamp.filled ? (
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.5"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M5 13l4 4L19 7"
+                            />
+                        </svg>
+                    ) : (
+                        <div class="empty-circle" />
+                    )}
+                </div>
+            ))
+        }
+    </div>
+</div>
+
+<style>
+    .stamp-card {
+        --stamp-color-empty: #e5e7eb;
+        --stamp-color-filled: var(--color-matcha, #87a96b);
+        --stamp-color-bg: var(--color-blanco-papel, #fefdf8);
+
+        background: var(--stamp-color-bg);
+        border: 2px solid var(--color-matcha-light, #d4e4c8);
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stamps-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .stamp {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+
+    .stamp.empty {
+        background: var(--stamp-color-empty);
+    }
+
+    .stamp.filled {
+        background: var(--stamp-color-filled);
+        color: white;
+        animation: stampPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .stamp.filled svg {
+        width: 60%;
+        height: 60%;
+    }
+
+    .empty-circle {
+        width: 50%;
+        height: 50%;
+        border: 2px dashed #9ca3af;
+        border-radius: 50%;
+    }
+
+    @keyframes stampPop {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    /* Size variants */
+    [data-size="sm"] .stamps-grid {
+        gap: 0.5rem;
+        max-width: 250px;
+    }
+
+    [data-size="lg"] .stamps-grid {
+        gap: 1.5rem;
+        max-width: 500px;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+        .stamps-grid {
+            gap: 0.75rem;
+        }
+
+        .stamp-card {
+            padding: 1rem;
+        }
+    }
+</style>
+
+<script>
+    // Animate newly filled stamps on load
+    document.addEventListener("astro:page-load", () => {
+        const filledStamps = document.querySelectorAll(".stamp.filled");
+
+        filledStamps.forEach((stamp, index) => {
+            const element = stamp as HTMLElement;
+            element.style.animationDelay = `${index * 0.1}s`;
+        });
+    });
+</script>
