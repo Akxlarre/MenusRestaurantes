@@ -2,8 +2,8 @@
 // AION Loyalty - Rewards Page
 // Shows stamp card, progress, and available rewards
 
-import StampCard from '../../components/loyalty/StampCard.astro';
-import { supabase } from '../../lib/supabase';
+import StampCard from '../components/loyalty/StampCard.astro';
+import { supabase } from '../lib/supabase';
 
 const { status, stamps } = Astro.url.searchParams;
 const isSuccess = status === 'success';
